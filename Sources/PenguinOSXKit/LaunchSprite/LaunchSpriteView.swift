@@ -6,6 +6,7 @@ final class LaunchSpriteView: NSView {
     private let imageView: NSImageView
     private let frames: [NSImage]
     private var frameIndex = 0
+    private var animationTimer: Timer?
 
     init(frame frameRect: NSRect, frames: [NSImage]) {
         self.frames = frames
@@ -33,15 +34,33 @@ final class LaunchSpriteView: NSView {
         self.imageView.frame = self.bounds
     }
 
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil {
+            self.stopFrameAnimation()
+        }
+    }
+
     private func startFrameAnimation() {
         guard self.frames.count > 1 else { return }
-        Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(120))
-                guard let self else { return }
-                self.advanceFrame()
-            }
-        }
+        self.stopFrameAnimation()
+        self.animationTimer = Timer.scheduledTimer(
+            timeInterval: 0.12,
+            target: self,
+            selector: #selector(handleAnimationTick),
+            userInfo: nil,
+            repeats: true)
+        RunLoop.main.add(self.animationTimer!, forMode: .common)
+    }
+
+    private func stopFrameAnimation() {
+        self.animationTimer?.invalidate()
+        self.animationTimer = nil
+    }
+
+    @objc
+    private func handleAnimationTick() {
+        self.advanceFrame()
     }
 
     private func advanceFrame() {
