@@ -6,6 +6,8 @@ final class PenguinOverlayController {
     static let shared = PenguinOverlayController()
 
     private static let placeholderSize = CGSize(width: 36, height: 36)
+    private static let fullWidthTraversalDuration: TimeInterval = 8.0
+    private static let accelerationFractionOfScreenWidth: CGFloat = 0.12
 
     private let window: NSWindow
     private let overlayView: PenguinOverlayView
@@ -33,7 +35,6 @@ final class PenguinOverlayController {
 
     func showPlaceholder(
         at targetFrame: CGRect,
-        animationDuration: TimeInterval = 0.18,
         dwellTime: TimeInterval = 0.2)
     {
         guard !targetFrame.isNull, !targetFrame.isEmpty else { return }
@@ -47,7 +48,7 @@ final class PenguinOverlayController {
         self.window.orderFrontRegardless()
         self.window.displayIfNeeded()
         self.overlayView.displayIfNeeded()
-        self.animatePlaceholder(from: startingFrame, to: destinationFrame, duration: animationDuration)
+        self.animatePlaceholder(from: startingFrame, to: destinationFrame)
         self.pumpRunLoop(for: dwellTime)
         self.lastPlaceholderFrame = destinationFrame
         self.hide()
@@ -93,21 +94,23 @@ final class PenguinOverlayController {
             size: destinationFrame.size).integral
     }
 
-    private func animatePlaceholder(from startFrame: CGRect, to endFrame: CGRect, duration: TimeInterval) {
-        guard duration > 0 else {
+    private func animatePlaceholder(from startFrame: CGRect, to endFrame: CGRect) {
+        let distance = hypot(endFrame.midX - startFrame.midX, endFrame.midY - startFrame.midY)
+        guard distance > 0 else {
             self.overlayView.placeholderFrame = endFrame
             self.overlayView.displayIfNeeded()
             return
         }
 
+        let motionProfile = self.makeMotionProfile(distance: distance)
         let startedAt = Date()
-        let endDate = startedAt.addingTimeInterval(duration)
+        let endDate = startedAt.addingTimeInterval(motionProfile.totalDuration)
 
         while Date() < endDate {
             let elapsed = Date().timeIntervalSince(startedAt)
-            let progress = min(1, elapsed / duration)
-            let eased = self.easeInOutCubic(progress)
-            self.overlayView.placeholderFrame = self.interpolate(from: startFrame, to: endFrame, progress: eased)
+            let traveledDistance = self.distanceTraveled(at: elapsed, profile: motionProfile)
+            let progress = min(1, traveledDistance / distance)
+            self.overlayView.placeholderFrame = self.interpolate(from: startFrame, to: endFrame, progress: CGFloat(progress))
             self.window.displayIfNeeded()
             self.overlayView.displayIfNeeded()
             RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
@@ -118,6 +121,62 @@ final class PenguinOverlayController {
         self.overlayView.displayIfNeeded()
     }
 
+    private func makeMotionProfile(distance: CGFloat) -> MotionProfile {
+        let maxSpeed = max(1, self.screenFrame.width / Self.fullWidthTraversalDuration)
+        let accelerationDistance = max(24, self.screenFrame.width * Self.accelerationFractionOfScreenWidth)
+        let acceleration = max(1, (maxSpeed * maxSpeed) / (2 * accelerationDistance))
+        let timeToMaxSpeed = maxSpeed / acceleration
+        let distanceToMaxSpeed = 0.5 * acceleration * timeToMaxSpeed * timeToMaxSpeed
+
+        if distance <= (distanceToMaxSpeed * 2) {
+            let peakSpeed = sqrt(max(distance * acceleration, 0))
+            let accelTime = peakSpeed / acceleration
+            return MotionProfile(
+                totalDistance: distance,
+                maxSpeed: peakSpeed,
+                acceleration: acceleration,
+                accelerationTime: accelTime,
+                cruiseTime: 0,
+                decelerationTime: accelTime,
+                accelerationDistance: distance / 2,
+                cruiseDistance: 0)
+        }
+
+        let cruiseDistance = distance - (distanceToMaxSpeed * 2)
+        let cruiseTime = cruiseDistance / maxSpeed
+        return MotionProfile(
+            totalDistance: distance,
+            maxSpeed: maxSpeed,
+            acceleration: acceleration,
+            accelerationTime: timeToMaxSpeed,
+            cruiseTime: cruiseTime,
+            decelerationTime: timeToMaxSpeed,
+            accelerationDistance: distanceToMaxSpeed,
+            cruiseDistance: cruiseDistance)
+    }
+
+    private func distanceTraveled(at elapsed: TimeInterval, profile: MotionProfile) -> CGFloat {
+        if elapsed <= 0 {
+            return 0
+        }
+
+        if elapsed < profile.accelerationTime {
+            return 0.5 * profile.acceleration * elapsed * elapsed
+        }
+
+        let cruiseStart = profile.accelerationTime
+        let cruiseEnd = cruiseStart + profile.cruiseTime
+        if elapsed < cruiseEnd {
+            let cruiseElapsed = elapsed - cruiseStart
+            return profile.accelerationDistance + (profile.maxSpeed * cruiseElapsed)
+        }
+
+        let decelStartDistance = profile.accelerationDistance + profile.cruiseDistance
+        let decelElapsed = min(elapsed - cruiseEnd, profile.decelerationTime)
+        let decelDistance = (profile.maxSpeed * decelElapsed) - (0.5 * profile.acceleration * decelElapsed * decelElapsed)
+        return min(profile.totalDistance, decelStartDistance + decelDistance)
+    }
+
     private func interpolate(from startFrame: CGRect, to endFrame: CGRect, progress: CGFloat) -> CGRect {
         let origin = CGPoint(
             x: startFrame.origin.x + ((endFrame.origin.x - startFrame.origin.x) * progress),
@@ -126,15 +185,6 @@ final class PenguinOverlayController {
             width: startFrame.size.width + ((endFrame.size.width - startFrame.size.width) * progress),
             height: startFrame.size.height + ((endFrame.size.height - startFrame.size.height) * progress))
         return CGRect(origin: origin, size: size).integral
-    }
-
-    private func easeInOutCubic(_ progress: Double) -> CGFloat {
-        if progress < 0.5 {
-            return CGFloat(4 * progress * progress * progress)
-        }
-
-        let adjusted = (-2 * progress) + 2
-        return CGFloat(1 - ((adjusted * adjusted * adjusted) / 2))
     }
 
     private func pumpRunLoop(for dwellTime: TimeInterval) {
@@ -148,6 +198,21 @@ final class PenguinOverlayController {
         NSScreen.screens.reduce(CGRect.null) { partialResult, screen in
             partialResult.union(screen.frame)
         }
+    }
+}
+
+private struct MotionProfile {
+    let totalDistance: CGFloat
+    let maxSpeed: CGFloat
+    let acceleration: CGFloat
+    let accelerationTime: TimeInterval
+    let cruiseTime: TimeInterval
+    let decelerationTime: TimeInterval
+    let accelerationDistance: CGFloat
+    let cruiseDistance: CGFloat
+
+    var totalDuration: TimeInterval {
+        self.accelerationTime + self.cruiseTime + self.decelerationTime
     }
 }
 
@@ -184,11 +249,9 @@ private final class PenguinOverlayView: NSView {
 
 @MainActor
 struct OverlayActionExecutionMiddleware: ActionExecutionMiddleware {
-    let animationDuration: TimeInterval
     let dwellTime: TimeInterval
 
-    init(animationDuration: TimeInterval = 0.18, dwellTime: TimeInterval = 0.2) {
-        self.animationDuration = animationDuration
+    init(dwellTime: TimeInterval = 0.2) {
         self.dwellTime = dwellTime
     }
 
@@ -199,7 +262,6 @@ struct OverlayActionExecutionMiddleware: ActionExecutionMiddleware {
 
         PenguinOverlayController.shared.showPlaceholder(
             at: targetFrame,
-            animationDuration: self.animationDuration,
             dwellTime: self.dwellTime)
     }
 
