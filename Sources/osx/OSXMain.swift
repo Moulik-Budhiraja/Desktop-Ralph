@@ -212,7 +212,7 @@ struct OSXSelectorCacheDaemonCommand: OSXLeafCommand {
             let resolvedSocketPath = self.socketPath ?? SelectorCacheDaemonClient.defaultSocketPath()
             try SelectorCacheDaemonServer.run(
                 socketPath: resolvedSocketPath,
-                actionMiddleware: NoopActionExecutionMiddleware())
+                actionMiddleware: OverlayActionExecutionMiddleware())
         }
     }
 }
