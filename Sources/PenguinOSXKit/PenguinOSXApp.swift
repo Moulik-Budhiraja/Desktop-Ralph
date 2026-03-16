@@ -91,6 +91,9 @@ private enum PenguinAppHost {
         let controller = try LaunchSpriteWindowController.make()
         controller.show()
         Self.launchController = controller
+        Task { @MainActor in
+            await Self.runLaunchDemo(using: controller)
+        }
 
         let delegate = AppDelegate(controller: controller)
         Self.appDelegate = delegate
@@ -111,6 +114,15 @@ private enum PenguinAppHost {
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
             false
         }
+    }
+
+    private static func runLaunchDemo(using controller: LaunchSpriteWindowController) async {
+        guard let screenFrame = NSScreen.main?.visibleFrame else { return }
+        let start = CGPoint(x: screenFrame.midX - 240, y: screenFrame.midY - 60)
+        let end = CGPoint(x: screenFrame.midX + 80, y: screenFrame.midY - 60)
+        controller.setSpriteOrigin(start)
+        try? await Task.sleep(for: .milliseconds(400))
+        await controller.moveSprite(from: start, to: end, duration: 2.4)
     }
 }
 
