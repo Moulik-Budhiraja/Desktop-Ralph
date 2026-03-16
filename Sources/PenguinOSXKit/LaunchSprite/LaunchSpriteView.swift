@@ -5,6 +5,7 @@ import Foundation
 final class LaunchSpriteView: NSView {
     private let imageView: NSImageView
     private let speechBubbleView = RalphSpeechBubbleView(frame: .zero)
+    private let debugBadgeView = RalphSpriteDebugBadgeView(frame: .zero)
     private let animationSet: LaunchSpriteAnimationSet
     private var currentAnimation: LaunchSpriteAnimation
     private var frameIndex = 0
@@ -12,8 +13,10 @@ final class LaunchSpriteView: NSView {
 
     private let spriteSize = CGSize(width: 128, height: 160)
     private let bubbleSize = CGSize(width: 150, height: 64)
+    private let debugBadgeSize = CGSize(width: 150, height: 28)
     private let spriteOrigin = CGPoint(x: 12, y: 12)
     private let bubbleOffset = CGPoint(x: 116, y: 118)
+    private let debugBadgeOrigin = CGPoint(x: 128, y: 16)
 
     init(frame frameRect: NSRect, animations: LaunchSpriteAnimationSet) {
         self.animationSet = animations
@@ -24,12 +27,14 @@ final class LaunchSpriteView: NSView {
         self.wantsLayer = true
         self.layer?.backgroundColor = NSColor.clear.cgColor
 
-        self.imageView.image = self.currentAnimation.frames.first
+        self.imageView.image = self.currentAnimation.frames.first?.image
         self.imageView.imageScaling = .scaleProportionallyUpOrDown
         self.imageView.animates = false
         self.imageView.wantsLayer = true
         self.addSubview(self.imageView)
         self.addSubview(self.speechBubbleView)
+        self.addSubview(self.debugBadgeView)
+        self.updateCurrentFrame()
         self.startAnimationTimer()
     }
 
@@ -46,6 +51,7 @@ final class LaunchSpriteView: NSView {
                 x: self.spriteOrigin.x + self.bubbleOffset.x,
                 y: self.spriteOrigin.y + self.bubbleOffset.y),
             size: self.bubbleSize)
+        self.debugBadgeView.frame = CGRect(origin: self.debugBadgeOrigin, size: self.debugBadgeSize)
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -60,20 +66,14 @@ final class LaunchSpriteView: NSView {
     }
 
     func playAnimation(forMovementFrom start: CGPoint, to end: CGPoint) {
-        let deltaX = end.x - start.x
-        let deltaY = end.y - start.y
-
-        if abs(deltaX) > abs(deltaY) {
-            self.setAnimation(deltaX >= 0 ? self.animationSet.walkRight : self.animationSet.walkLeft)
-        } else {
-            self.setAnimation(deltaY >= 0 ? self.animationSet.walkUp : self.animationSet.walkDown)
-        }
+        let direction = LaunchSpriteMovementDirection.resolve(from: start, to: end)
+        self.setAnimation(self.animationSet.animation(for: direction))
     }
 
     private func setAnimation(_ animation: LaunchSpriteAnimation) {
         self.currentAnimation = animation
         self.frameIndex = 0
-        self.imageView.image = animation.frames.first
+        self.updateCurrentFrame()
         self.startAnimationTimer()
     }
 
@@ -103,7 +103,65 @@ final class LaunchSpriteView: NSView {
         let frames = self.currentAnimation.frames
         guard !frames.isEmpty else { return }
         self.frameIndex = (self.frameIndex + 1) % frames.count
-        self.imageView.image = frames[self.frameIndex]
+        self.updateCurrentFrame()
+    }
+
+    private func updateCurrentFrame() {
+        let frames = self.currentAnimation.frames
+        guard !frames.isEmpty else {
+            self.imageView.image = nil
+            self.debugBadgeView.setFileName("")
+            return
+        }
+        let frame = frames[self.frameIndex]
+        self.imageView.image = frame.image
+        self.debugBadgeView.setFileName(frame.fileName)
+    }
+
+    func setSpeechText(_ text: String) {
+        self.speechBubbleView.setText(text)
+    }
+
+    func currentSpeechText() -> String {
+        self.speechBubbleView.currentText
+    }
+}
+
+@MainActor
+private final class RalphSpriteDebugBadgeView: NSView {
+    private let textField: NSTextField = {
+        let field = NSTextField(labelWithString: "")
+        field.alignment = .center
+        field.font = .monospacedSystemFont(ofSize: 11, weight: .semibold)
+        field.textColor = NSColor(calibratedWhite: 0.12, alpha: 1)
+        field.lineBreakMode = .byTruncatingMiddle
+        return field
+    }()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.88).cgColor
+        self.layer?.borderColor = NSColor.black.withAlphaComponent(0.12).cgColor
+        self.layer?.borderWidth = 1
+        self.layer?.cornerRadius = 8
+        self.addSubview(self.textField)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layout() {
+        super.layout()
+        self.textField.frame = self.bounds.insetBy(dx: 8, dy: 5)
+    }
+
+    func setFileName(_ fileName: String) {
+        self.textField.stringValue = fileName
+        self.toolTip = fileName
+        self.isHidden = fileName.isEmpty
     }
 }
 
@@ -145,8 +203,20 @@ private final class RalphSpeechBubbleView: NSView {
             ?? .monospacedSystemFont(ofSize: 15, weight: .bold)
     }
 
+    var currentText: String {
+        self.textField.stringValue
+    }
+
+    func setText(_ text: String) {
+        self.textField.stringValue = text
+        self.isHidden = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        self.needsLayout = true
+        self.needsDisplay = true
+    }
+
     override func layout() {
         super.layout()
+        guard !self.isHidden else { return }
         let contentRect = CGRect(
             x: 18,
             y: 18,

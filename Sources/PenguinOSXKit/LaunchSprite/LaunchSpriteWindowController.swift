@@ -47,6 +47,14 @@ final class LaunchSpriteWindowController: NSWindowController {
         window.setFrameOrigin(Self.clampedOrigin(origin, size: window.frame.size))
     }
 
+    func setSpeechText(_ text: String) {
+        self.spriteView.setSpeechText(text)
+    }
+
+    func currentSpeechText() -> String {
+        self.spriteView.currentSpeechText()
+    }
+
     func moveSprite(to destination: CGPoint, duration: TimeInterval) async {
         guard let window else { return }
         await self.moveSprite(from: window.frame.origin, to: destination, duration: duration)
@@ -179,7 +187,7 @@ enum LaunchSpriteAssetLoader {
         return LaunchSpriteAnimationSet(
             idleSpin: LaunchSpriteAnimation(
                 frames: idleFrames,
-                frameDuration: 0.18),
+                frameDuration: 0.26),
             walkLeft: LaunchSpriteAnimation(frames: walkLeftFrames, frameDuration: 0.10),
             walkRight: LaunchSpriteAnimation(
                 frames: walkLeftFrames.map(Self.mirror),
@@ -188,26 +196,26 @@ enum LaunchSpriteAssetLoader {
             walkDown: LaunchSpriteAnimation(frames: walkDownFrames, frameDuration: 0.11))
     }
 
-    private static func loadFrame(named name: String) throws -> NSImage {
+    private static func loadFrame(named name: String) throws -> LaunchSpriteFrame {
         guard let url = Bundle.module.url(forResource: name, withExtension: "png") else {
             throw LaunchSpriteError.missingAsset("Missing Ralph launch sprite resource '\(name).png'.")
         }
         guard let image = NSImage(contentsOf: url) else {
             throw LaunchSpriteError.missingAsset("Failed to load Ralph launch sprite resource '\(name).png'.")
         }
-        return image
+        return LaunchSpriteFrame(image: image, fileName: "\(name).png")
     }
 
-    private static func mirror(_ image: NSImage) -> NSImage {
-        let mirrored = NSImage(size: image.size)
+    private static func mirror(_ frame: LaunchSpriteFrame) -> LaunchSpriteFrame {
+        let mirrored = NSImage(size: frame.image.size)
         mirrored.lockFocus()
         let transform = NSAffineTransform()
-        transform.translateX(by: image.size.width, yBy: 0)
+        transform.translateX(by: frame.image.size.width, yBy: 0)
         transform.scaleX(by: -1, yBy: 1)
         transform.concat()
-        image.draw(in: CGRect(origin: .zero, size: image.size))
+        frame.image.draw(in: CGRect(origin: .zero, size: frame.image.size))
         mirrored.unlockFocus()
-        return mirrored
+        return LaunchSpriteFrame(image: mirrored, fileName: "\(frame.fileName) [mirrored]")
     }
 }
 

@@ -11,5 +11,9 @@ final class LaunchSpriteAssetLoaderTests: XCTestCase {
         XCTAssertEqual(animationSet.walkRight.frames.count, 4)
         XCTAssertEqual(animationSet.walkUp.frames.count, 4)
         XCTAssertEqual(animationSet.walkDown.frames.count, 4)
+        XCTAssertEqual(animationSet.idleSpin.frames.first?.fileName, "front_center_pose_01.png")
+        XCTAssertEqual(
+            animationSet.walkRight.frames.first?.fileName,
+            "left_profile_walk_pose_01.png [mirrored]")
     }
 }
