@@ -7,15 +7,13 @@ final class PenguinOverlayController {
 
     private let window: NSWindow
     private let overlayView: PenguinOverlayView
+    private var screenFrame: CGRect
 
     private init() {
-        let screenFrame = NSScreen.screens.reduce(CGRect.null) { partialResult, screen in
-            partialResult.union(screen.frame)
-        }
-
-        self.overlayView = PenguinOverlayView(frame: screenFrame)
+        self.screenFrame = Self.combinedScreenFrame()
+        self.overlayView = PenguinOverlayView(frame: CGRect(origin: .zero, size: self.screenFrame.size))
         self.window = NSWindow(
-            contentRect: screenFrame,
+            contentRect: self.screenFrame,
             styleMask: [.borderless],
             backing: .buffered,
             defer: false)
@@ -26,7 +24,7 @@ final class PenguinOverlayController {
         self.window.ignoresMouseEvents = true
         self.window.level = .screenSaver
         self.window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
-        self.window.setFrame(screenFrame, display: false)
+        self.window.setFrame(self.screenFrame, display: false)
         self.window.contentView = self.overlayView
     }
 
@@ -34,6 +32,7 @@ final class PenguinOverlayController {
         guard !targetFrame.isNull, !targetFrame.isEmpty else { return }
 
         self.ensureAppReady()
+        self.refreshScreenFrame()
         self.overlayView.placeholderFrame = self.placeholderFrame(for: targetFrame)
         self.window.orderFrontRegardless()
         self.window.displayIfNeeded()
@@ -52,11 +51,21 @@ final class PenguinOverlayController {
         app.setActivationPolicy(.accessory)
     }
 
+    private func refreshScreenFrame() {
+        let newFrame = Self.combinedScreenFrame()
+        guard newFrame != self.screenFrame else { return }
+
+        self.screenFrame = newFrame
+        self.window.setFrame(newFrame, display: false)
+        self.overlayView.frame = CGRect(origin: .zero, size: newFrame.size)
+        self.overlayView.needsDisplay = true
+    }
+
     private func placeholderFrame(for targetFrame: CGRect) -> CGRect {
         let size = CGSize(width: 36, height: 36)
         let origin = CGPoint(
-            x: targetFrame.midX - (size.width / 2),
-            y: targetFrame.midY - (size.height / 2))
+            x: targetFrame.midX - self.screenFrame.minX - (size.width / 2),
+            y: targetFrame.midY - self.screenFrame.minY - (size.height / 2))
         return CGRect(origin: origin, size: size).integral
     }
 
@@ -64,6 +73,12 @@ final class PenguinOverlayController {
         let endDate = Date().addingTimeInterval(dwellTime)
         while Date() < endDate {
             RunLoop.current.run(mode: .default, before: min(endDate, Date().addingTimeInterval(0.01)))
+        }
+    }
+
+    private static func combinedScreenFrame() -> CGRect {
+        NSScreen.screens.reduce(CGRect.null) { partialResult, screen in
+            partialResult.union(screen.frame)
         }
     }
 }
