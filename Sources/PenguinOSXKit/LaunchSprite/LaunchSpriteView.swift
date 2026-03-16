@@ -115,7 +115,7 @@ private final class RalphSpeechBubbleView: NSView {
     private let textField: NSTextField = {
         let field = NSTextField(labelWithString: "Ralph is here")
         field.alignment = .center
-        field.font = .systemFont(ofSize: 14, weight: .semibold)
+        field.font = RalphSpeechBubbleView.makeBubbleFont()
         field.textColor = NSColor(calibratedWhite: 0.13, alpha: 1)
         field.backgroundColor = .clear
         field.lineBreakMode = .byWordWrapping
@@ -137,6 +137,12 @@ private final class RalphSpeechBubbleView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private static func makeBubbleFont() -> NSFont {
+        NSFont(name: "Paper Mono", size: 15)
+            ?? NSFont(name: "Monaco", size: 15)
+            ?? .monospacedSystemFont(ofSize: 15, weight: .bold)
     }
 
     override func layout() {
