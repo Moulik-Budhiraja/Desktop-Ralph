@@ -1,0 +1,40 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:AXorcist}",
+      "name": "Debug axorc",
+      "program": "${workspaceFolder:AXorcist}/.build/debug/axorc",
+      "preLaunchTask": "swift: Build Debug axorc"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:AXorcist}",
+      "name": "Release axorc",
+      "program": "${workspaceFolder:AXorcist}/.build/release/axorc",
+      "preLaunchTask": "swift: Build Release axorc"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Debug osx",
+      "program": "${workspaceFolder:cursor-build}/.build/debug/osx",
+      "preLaunchTask": "swift: Build Debug osx"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Release osx",
+      "program": "${workspaceFolder:cursor-build}/.build/release/osx",
+      "preLaunchTask": "swift: Build Release osx"
+    }
+  ]
+}
