@@ -16,6 +16,9 @@ let package = Package(
             name: "PenguinOSXKit",
             dependencies: [
                 .product(name: "OSXQuery", package: "OSX-Query"),
+            ],
+            resources: [
+                .process("Resources"),
             ]
         ),
         .executableTarget(

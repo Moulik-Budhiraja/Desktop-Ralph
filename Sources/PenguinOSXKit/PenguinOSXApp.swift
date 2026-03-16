@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 public struct PenguinOSXApp {
@@ -7,6 +8,10 @@ public struct PenguinOSXApp {
         do {
             let command = try CLICommand.parse(arguments: arguments)
             switch command {
+            case .app:
+                try await MainActor.run {
+                    try PenguinAppHost.run()
+                }
             case let .query(request):
                 let output = try PenguinDaemonClient().execute(query: request)
                 print(output)
@@ -47,6 +52,7 @@ public struct PenguinOSXApp {
 }
 
 private enum CLICommand {
+    case app
     case query(PenguinQueryRequest)
     case action(String)
     case daemon(String)
@@ -54,7 +60,7 @@ private enum CLICommand {
 
     static func parse(arguments: [String]) throws -> CLICommand {
         guard let subcommand = arguments.first else {
-            return .help
+            return .app
         }
 
         switch subcommand {
@@ -68,6 +74,42 @@ private enum CLICommand {
             return .daemon(try CLIParser.parseDaemon(arguments: Array(arguments.dropFirst())))
         default:
             throw CLIError("Unknown command '\(subcommand)'.")
+        }
+    }
+}
+
+@MainActor
+private enum PenguinAppHost {
+    private static var launchController: LaunchSpriteWindowController?
+    private static var appDelegate: AppDelegate?
+    private static var keepAlivePort: Port?
+
+    static func run() throws {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+
+        let controller = try LaunchSpriteWindowController.make()
+        controller.show()
+        Self.launchController = controller
+
+        let delegate = AppDelegate(controller: controller)
+        Self.appDelegate = delegate
+        app.delegate = delegate
+        let keepAlivePort = Port()
+        Self.keepAlivePort = keepAlivePort
+        RunLoop.main.add(keepAlivePort, forMode: .default)
+        CFRunLoopRun()
+    }
+
+    private final class AppDelegate: NSObject, NSApplicationDelegate {
+        private let controller: LaunchSpriteWindowController
+
+        init(controller: LaunchSpriteWindowController) {
+            self.controller = controller
+        }
+
+        func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+            false
         }
     }
 }
