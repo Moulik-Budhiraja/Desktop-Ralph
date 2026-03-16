@@ -19,6 +19,12 @@ let package = Package(
             ]
         ),
         .executableTarget(
+            name: "sprite-sheet-tool",
+            dependencies: [
+                "PenguinOSXKit",
+            ]
+        ),
+        .executableTarget(
             name: "cursor-build",
             dependencies: [
                 "PenguinOSXKit",

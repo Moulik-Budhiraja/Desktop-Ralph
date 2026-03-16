@@ -1,0 +1,406 @@
+{
+  "sourceImage" : "Gemini_Generated_Image_fbis35fbis35fbis.png",
+  "spriteCount" : 40,
+  "sprites" : [
+    {
+      "filename" : "idle_01.png",
+      "height" : 236,
+      "label" : "idle_01",
+      "rowIndex" : 0,
+      "spriteIndex" : 0,
+      "width" : 179,
+      "x" : 39,
+      "y" : 149
+    },
+    {
+      "filename" : "idle_02.png",
+      "height" : 235,
+      "label" : "idle_02",
+      "rowIndex" : 0,
+      "spriteIndex" : 1,
+      "width" : 176,
+      "x" : 296,
+      "y" : 149
+    },
+    {
+      "filename" : "idle_03.png",
+      "height" : 236,
+      "label" : "idle_03",
+      "rowIndex" : 0,
+      "spriteIndex" : 2,
+      "width" : 176,
+      "x" : 552,
+      "y" : 149
+    },
+    {
+      "filename" : "idle_04.png",
+      "height" : 236,
+      "label" : "idle_04",
+      "rowIndex" : 0,
+      "spriteIndex" : 3,
+      "width" : 177,
+      "x" : 807,
+      "y" : 149
+    },
+    {
+      "filename" : "idle_05.png",
+      "height" : 244,
+      "label" : "idle_05",
+      "rowIndex" : 0,
+      "spriteIndex" : 4,
+      "width" : 150,
+      "x" : 1081,
+      "y" : 142
+    },
+    {
+      "filename" : "idle_06.png",
+      "height" : 243,
+      "label" : "idle_06",
+      "rowIndex" : 0,
+      "spriteIndex" : 5,
+      "width" : 150,
+      "x" : 1338,
+      "y" : 142
+    },
+    {
+      "filename" : "idle_07.png",
+      "height" : 243,
+      "label" : "idle_07",
+      "rowIndex" : 0,
+      "spriteIndex" : 6,
+      "width" : 151,
+      "x" : 1587,
+      "y" : 142
+    },
+    {
+      "filename" : "idle_08.png",
+      "height" : 244,
+      "label" : "idle_08",
+      "rowIndex" : 0,
+      "spriteIndex" : 7,
+      "width" : 151,
+      "x" : 1841,
+      "y" : 141
+    },
+    {
+      "filename" : "walk_01.png",
+      "height" : 235,
+      "label" : "walk_01",
+      "rowIndex" : 1,
+      "spriteIndex" : 0,
+      "width" : 181,
+      "x" : 39,
+      "y" : 469
+    },
+    {
+      "filename" : "walk_02.png",
+      "height" : 237,
+      "label" : "walk_02",
+      "rowIndex" : 1,
+      "spriteIndex" : 1,
+      "width" : 190,
+      "x" : 289,
+      "y" : 468
+    },
+    {
+      "filename" : "walk_03.png",
+      "height" : 239,
+      "label" : "walk_03",
+      "rowIndex" : 1,
+      "spriteIndex" : 2,
+      "width" : 196,
+      "x" : 540,
+      "y" : 466
+    },
+    {
+      "filename" : "walk_04.png",
+      "height" : 231,
+      "label" : "walk_04",
+      "rowIndex" : 1,
+      "spriteIndex" : 3,
+      "width" : 196,
+      "x" : 800,
+      "y" : 466
+    },
+    {
+      "filename" : "walk_05.png",
+      "height" : 235,
+      "label" : "walk_05",
+      "rowIndex" : 1,
+      "spriteIndex" : 4,
+      "width" : 185,
+      "x" : 1060,
+      "y" : 469
+    },
+    {
+      "filename" : "walk_06.png",
+      "height" : 243,
+      "label" : "walk_06",
+      "rowIndex" : 1,
+      "spriteIndex" : 5,
+      "width" : 146,
+      "x" : 1343,
+      "y" : 462
+    },
+    {
+      "filename" : "walk_07.png",
+      "height" : 243,
+      "label" : "walk_07",
+      "rowIndex" : 1,
+      "spriteIndex" : 6,
+      "width" : 148,
+      "x" : 1586,
+      "y" : 462
+    },
+    {
+      "filename" : "walk_08.png",
+      "height" : 243,
+      "label" : "walk_08",
+      "rowIndex" : 1,
+      "spriteIndex" : 7,
+      "width" : 152,
+      "x" : 1840,
+      "y" : 462
+    },
+    {
+      "filename" : "run_01.png",
+      "height" : 232,
+      "label" : "run_01",
+      "rowIndex" : 2,
+      "spriteIndex" : 0,
+      "width" : 208,
+      "x" : 24,
+      "y" : 791
+    },
+    {
+      "filename" : "run_02.png",
+      "height" : 234,
+      "label" : "run_02",
+      "rowIndex" : 2,
+      "spriteIndex" : 1,
+      "width" : 192,
+      "x" : 288,
+      "y" : 791
+    },
+    {
+      "filename" : "run_03.png",
+      "height" : 234,
+      "label" : "run_03",
+      "rowIndex" : 2,
+      "spriteIndex" : 2,
+      "width" : 192,
+      "x" : 538,
+      "y" : 791
+    },
+    {
+      "filename" : "run_04.png",
+      "height" : 234,
+      "label" : "run_04",
+      "rowIndex" : 2,
+      "spriteIndex" : 3,
+      "width" : 197,
+      "x" : 799,
+      "y" : 791
+    },
+    {
+      "filename" : "run_05.png",
+      "height" : 232,
+      "label" : "run_05",
+      "rowIndex" : 2,
+      "spriteIndex" : 4,
+      "width" : 192,
+      "x" : 1060,
+      "y" : 791
+    },
+    {
+      "filename" : "run_06.png",
+      "height" : 240,
+      "label" : "run_06",
+      "rowIndex" : 2,
+      "spriteIndex" : 5,
+      "width" : 147,
+      "x" : 1344,
+      "y" : 785
+    },
+    {
+      "filename" : "run_07.png",
+      "height" : 241,
+      "label" : "run_07",
+      "rowIndex" : 2,
+      "spriteIndex" : 6,
+      "width" : 183,
+      "x" : 1575,
+      "y" : 785
+    },
+    {
+      "filename" : "run_08.png",
+      "height" : 242,
+      "label" : "run_08",
+      "rowIndex" : 2,
+      "spriteIndex" : 7,
+      "width" : 149,
+      "x" : 1842,
+      "y" : 785
+    },
+    {
+      "filename" : "jump_fall_01.png",
+      "height" : 201,
+      "label" : "jump_fall_01",
+      "rowIndex" : 3,
+      "spriteIndex" : 0,
+      "width" : 169,
+      "x" : 45,
+      "y" : 1167
+    },
+    {
+      "filename" : "jump_fall_02.png",
+      "height" : 248,
+      "label" : "jump_fall_02",
+      "rowIndex" : 3,
+      "spriteIndex" : 1,
+      "width" : 217,
+      "x" : 281,
+      "y" : 1112
+    },
+    {
+      "filename" : "jump_fall_03.png",
+      "height" : 255,
+      "label" : "jump_fall_03",
+      "rowIndex" : 3,
+      "spriteIndex" : 2,
+      "width" : 219,
+      "x" : 533,
+      "y" : 1111
+    },
+    {
+      "filename" : "jump_fall_04.png",
+      "height" : 188,
+      "label" : "jump_fall_04",
+      "rowIndex" : 3,
+      "spriteIndex" : 3,
+      "width" : 171,
+      "x" : 815,
+      "y" : 1180
+    },
+    {
+      "filename" : "interact_01.png",
+      "height" : 239,
+      "label" : "interact_01",
+      "rowIndex" : 4,
+      "spriteIndex" : 0,
+      "width" : 234,
+      "x" : 25,
+      "y" : 1468
+    },
+    {
+      "filename" : "interact_02.png",
+      "height" : 241,
+      "label" : "interact_02",
+      "rowIndex" : 4,
+      "spriteIndex" : 1,
+      "width" : 213,
+      "x" : 281,
+      "y" : 1467
+    },
+    {
+      "filename" : "interact_03.png",
+      "height" : 241,
+      "label" : "interact_03",
+      "rowIndex" : 4,
+      "spriteIndex" : 2,
+      "width" : 183,
+      "x" : 566,
+      "y" : 1468
+    },
+    {
+      "filename" : "interact_04.png",
+      "height" : 239,
+      "label" : "interact_04",
+      "rowIndex" : 4,
+      "spriteIndex" : 3,
+      "width" : 190,
+      "x" : 804,
+      "y" : 1468
+    },
+    {
+      "filename" : "interact_05.png",
+      "height" : 239,
+      "label" : "interact_05",
+      "rowIndex" : 4,
+      "spriteIndex" : 4,
+      "width" : 168,
+      "x" : 1317,
+      "y" : 1468
+    },
+    {
+      "filename" : "interact_06.png",
+      "height" : 237,
+      "label" : "interact_06",
+      "rowIndex" : 4,
+      "spriteIndex" : 5,
+      "width" : 171,
+      "x" : 1566,
+      "y" : 1468
+    },
+    {
+      "filename" : "interact_07.png",
+      "height" : 240,
+      "label" : "interact_07",
+      "rowIndex" : 4,
+      "spriteIndex" : 6,
+      "width" : 186,
+      "x" : 1822,
+      "y" : 1468
+    },
+    {
+      "filename" : "hurt_ko_01.png",
+      "height" : 243,
+      "label" : "hurt_ko_01",
+      "rowIndex" : 5,
+      "spriteIndex" : 0,
+      "width" : 191,
+      "x" : 33,
+      "y" : 1805
+    },
+    {
+      "filename" : "hurt_ko_02.png",
+      "height" : 243,
+      "label" : "hurt_ko_02",
+      "rowIndex" : 5,
+      "spriteIndex" : 1,
+      "width" : 221,
+      "x" : 287,
+      "y" : 1805
+    },
+    {
+      "filename" : "hurt_ko_03.png",
+      "height" : 215,
+      "label" : "hurt_ko_03",
+      "rowIndex" : 5,
+      "spriteIndex" : 2,
+      "width" : 247,
+      "x" : 564,
+      "y" : 1833
+    },
+    {
+      "filename" : "hurt_ko_04.png",
+      "height" : 200,
+      "label" : "hurt_ko_04",
+      "rowIndex" : 5,
+      "spriteIndex" : 3,
+      "width" : 260,
+      "x" : 877,
+      "y" : 1844
+    },
+    {
+      "filename" : "hurt_ko_05.png",
+      "height" : 134,
+      "label" : "hurt_ko_05",
+      "rowIndex" : 5,
+      "spriteIndex" : 4,
+      "width" : 332,
+      "x" : 1708,
+      "y" : 1912
+    }
+  ]
+}
