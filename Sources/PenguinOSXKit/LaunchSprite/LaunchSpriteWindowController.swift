@@ -3,17 +3,18 @@ import Foundation
 
 @MainActor
 final class LaunchSpriteWindowController: NSWindowController {
-    private static let spriteDisplaySize = CGSize(width: 128, height: 160)
     private static let contentSize = CGSize(width: 292, height: 208)
+    private let spriteView: LaunchSpriteView
 
     static func make() throws -> LaunchSpriteWindowController {
-        let frames = try LaunchSpriteAssetLoader.loadSpriteFrames()
-        return LaunchSpriteWindowController(frames: frames)
+        let animations = try LaunchSpriteAssetLoader.loadAnimationSet()
+        return LaunchSpriteWindowController(animations: animations)
     }
 
-    private init(frames: [NSImage]) {
+    private init(animations: LaunchSpriteAnimationSet) {
         let frame = Self.randomFrame(for: Self.contentSize)
-        let contentView = LaunchSpriteView(frame: CGRect(origin: .zero, size: frame.size), frames: frames)
+        let contentView = LaunchSpriteView(frame: CGRect(origin: .zero, size: frame.size), animations: animations)
+        self.spriteView = contentView
 
         let window = NSWindow(
             contentRect: frame,
@@ -41,6 +42,48 @@ final class LaunchSpriteWindowController: NSWindowController {
         self.window?.orderFrontRegardless()
     }
 
+    func setSpriteOrigin(_ origin: CGPoint) {
+        guard let window else { return }
+        window.setFrameOrigin(Self.clampedOrigin(origin, size: window.frame.size))
+    }
+
+    func moveSprite(to destination: CGPoint, duration: TimeInterval) async {
+        guard let window else { return }
+        await self.moveSprite(from: window.frame.origin, to: destination, duration: duration)
+    }
+
+    func moveSprite(from start: CGPoint, to destination: CGPoint, duration: TimeInterval) async {
+        guard let window else { return }
+
+        let startOrigin = Self.clampedOrigin(start, size: window.frame.size)
+        let endOrigin = Self.clampedOrigin(destination, size: window.frame.size)
+        window.setFrameOrigin(startOrigin)
+        self.spriteView.playAnimation(forMovementFrom: startOrigin, to: endOrigin)
+        window.orderFrontRegardless()
+
+        guard duration > 0 else {
+            window.setFrameOrigin(endOrigin)
+            self.spriteView.playIdleSpin()
+            return
+        }
+
+        let steps = max(Int(duration / 0.016), 1)
+        let sleepNanoseconds = UInt64((duration / Double(steps)) * 1_000_000_000)
+
+        for step in 1...steps {
+            let progress = CGFloat(step) / CGFloat(steps)
+            let eased = Self.easeInOut(progress)
+            let currentOrigin = CGPoint(
+                x: startOrigin.x + (endOrigin.x - startOrigin.x) * eased,
+                y: startOrigin.y + (endOrigin.y - startOrigin.y) * eased)
+            window.setFrameOrigin(currentOrigin)
+            try? await Task.sleep(nanoseconds: sleepNanoseconds)
+        }
+
+        window.setFrameOrigin(endOrigin)
+        self.spriteView.playIdleSpin()
+    }
+
     private static func randomFrame(for size: CGSize) -> CGRect {
         let screens = NSScreen.screens
         let screen = screens.randomElement() ?? NSScreen.main
@@ -54,25 +97,62 @@ final class LaunchSpriteWindowController: NSWindowController {
 
         return CGRect(origin: CGPoint(x: x, y: y), size: size)
     }
+
+    private static func clampedOrigin(_ origin: CGPoint, size: CGSize) -> CGPoint {
+        let desktop = NSScreen.screens.map(\.visibleFrame).reduce(CGRect.null) { partial, frame in
+            partial.union(frame)
+        }
+        guard !desktop.isNull else { return origin }
+
+        return CGPoint(
+            x: min(max(origin.x, desktop.minX), desktop.maxX - size.width),
+            y: min(max(origin.y, desktop.minY), desktop.maxY - size.height))
+    }
+
+    private static func easeInOut(_ progress: CGFloat) -> CGFloat {
+        progress * progress * (3 - 2 * progress)
+    }
 }
 
 enum LaunchSpriteAssetLoader {
-    private static let frameResourceNames = [
-        "front_center_pose_01",
-        "front_three_quarter_right_pose_01",
-        "right_profile_walk_pose_01",
-        "back_pose_01",
-        "left_profile_pose_01",
-        "front_three_quarter_left_pose_01",
-    ]
+    static func loadAnimationSet() throws -> LaunchSpriteAnimationSet {
+        let idleFrames = try [
+            "front_center_pose_01",
+            "front_three_quarter_right_pose_01",
+            "right_profile_walk_pose_01",
+            "back_pose_01",
+            "left_profile_pose_01",
+            "front_three_quarter_left_pose_01",
+        ].map(Self.loadFrame(named:))
+        let walkLeftFrames = try [
+            "left_profile_walk_pose_01",
+            "left_profile_pose_02",
+            "left_profile_walk_pose_02",
+            "left_profile_pose_03",
+        ].map(Self.loadFrame(named:))
+        let walkUpFrames = try [
+            "back_pose_01",
+            "back_pose_02",
+            "back_pose_03",
+            "back_pose_04",
+        ].map(Self.loadFrame(named:))
+        let walkDownFrames = try [
+            "front_center_pose_01",
+            "front_center_pose_02",
+            "front_center_pose_03",
+            "front_center_pose_04",
+        ].map(Self.loadFrame(named:))
 
-    static func loadSpriteFrames() throws -> [NSImage] {
-        let cycle = Self.frameResourceNames + Self.frameResourceNames.dropFirst().dropLast().reversed()
-        let frames = try cycle.map(Self.loadFrame(named:))
-        guard !frames.isEmpty else {
-            throw LaunchSpriteError.missingAsset("Missing Ralph launch sprite frames.")
-        }
-        return frames
+        return LaunchSpriteAnimationSet(
+            idleSpin: LaunchSpriteAnimation(
+                frames: idleFrames,
+                frameDuration: 0.18),
+            walkLeft: LaunchSpriteAnimation(frames: walkLeftFrames, frameDuration: 0.10),
+            walkRight: LaunchSpriteAnimation(
+                frames: walkLeftFrames.map(Self.mirror),
+                frameDuration: 0.10),
+            walkUp: LaunchSpriteAnimation(frames: walkUpFrames, frameDuration: 0.11),
+            walkDown: LaunchSpriteAnimation(frames: walkDownFrames, frameDuration: 0.11))
     }
 
     private static func loadFrame(named name: String) throws -> NSImage {
@@ -83,6 +163,18 @@ enum LaunchSpriteAssetLoader {
             throw LaunchSpriteError.missingAsset("Failed to load Ralph launch sprite resource '\(name).png'.")
         }
         return image
+    }
+
+    private static func mirror(_ image: NSImage) -> NSImage {
+        let mirrored = NSImage(size: image.size)
+        mirrored.lockFocus()
+        let transform = NSAffineTransform()
+        transform.translateX(by: image.size.width, yBy: 0)
+        transform.scaleX(by: -1, yBy: 1)
+        transform.concat()
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        mirrored.unlockFocus()
+        return mirrored
     }
 }
 
