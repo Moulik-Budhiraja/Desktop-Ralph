@@ -63,9 +63,12 @@ final class PenguinOverlayController {
 
     private func placeholderFrame(for targetFrame: CGRect) -> CGRect {
         let size = CGSize(width: 36, height: 36)
+        let localMidX = targetFrame.midX - self.screenFrame.minX
+        let localMidYFromTop = targetFrame.midY - self.screenFrame.minY
+        let flippedMidY = self.screenFrame.height - localMidYFromTop
         let origin = CGPoint(
-            x: targetFrame.midX - self.screenFrame.minX - (size.width / 2),
-            y: targetFrame.midY - self.screenFrame.minY - (size.height / 2))
+            x: localMidX - (size.width / 2),
+            y: flippedMidY - (size.height / 2))
         return CGRect(origin: origin, size: size).integral
     }
 
