@@ -113,7 +113,7 @@ private final class RalphSpeechBubbleView: NSView {
     private let bubbleFillColor = NSColor.white
 
     private let textField: NSTextField = {
-        let field = NSTextField(labelWithString: "Ralph says hello")
+        let field = NSTextField(labelWithString: "Ralph is here")
         field.alignment = .center
         field.font = .systemFont(ofSize: 14, weight: .semibold)
         field.textColor = NSColor(calibratedWhite: 0.13, alpha: 1)
@@ -151,10 +151,6 @@ private final class RalphSpeechBubbleView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         let bubbleRect = CGRect(x: 10, y: 14, width: self.bounds.width - 14, height: self.bounds.height - 18)
         let path = NSBezierPath(roundedRect: bubbleRect, xRadius: 18, yRadius: 18)
-        path.move(to: CGPoint(x: 34, y: bubbleRect.minY + 2))
-        path.line(to: CGPoint(x: 18, y: 6))
-        path.line(to: CGPoint(x: 42, y: bubbleRect.minY + 10))
-        path.close()
 
         self.bubbleFillColor.setFill()
         path.fill()
