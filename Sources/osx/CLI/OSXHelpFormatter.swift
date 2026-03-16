@@ -7,18 +7,18 @@ enum OSXHelpFormatter {
         switch requestedPath {
         case ["query"]:
             return renderCommand(
-                title: "osx query",
+                title: "ralph query",
                 abstract: "Run a selector query against a target app.",
                 usage: [
-                    "osx query --app <target> <selector> [options]",
+                    "ralph query --app <target> <selector> [options]",
                 ],
                 command: OSXQueryCommand())
         case ["action"]:
             return renderCommand(
-                title: "osx action",
+                title: "ralph action",
                 abstract: "Execute an OXA action program against cached refs.",
                 usage: [
-                    "osx action <program> [options]",
+                    "ralph action <program> [options]",
                 ],
                 command: OSXActionCommand())
         default:
@@ -27,22 +27,22 @@ enum OSXHelpFormatter {
     }
 
     private static func renderRoot() -> String {
-        let description = OSXRootCommand.commandDescription
+        let description = RalphRootCommand.commandDescription
         let commands: [(name: String, abstract: String)] = [
             ("query", OSXQueryCommand.commandDescription.abstract),
             ("action", OSXActionCommand.commandDescription.abstract),
         ]
 
         var lines: [String] = []
-        lines.append("osx")
+        lines.append("ralph")
         if !description.abstract.isEmpty {
             lines.append(description.abstract)
         }
         lines.append("")
         lines.append("USAGE")
-        lines.append("  osx <command>")
-        lines.append("  osx help [command]")
-        lines.append("  osx --help")
+        lines.append("  ralph <command>")
+        lines.append("  ralph help [command]")
+        lines.append("  ralph --help")
         lines.append("")
         lines.append("COMMANDS")
         for command in commands {

@@ -14,7 +14,7 @@ enum OSXCLIEntrypoint {
         }
 
         do {
-            let invocation = try OSXCLICommandRegistry.program.resolve(argv: ["osx"] + arguments)
+            let invocation = try OSXCLICommandRegistry.program.resolve(argv: ["ralph"] + arguments)
             try await OSXCLICommandRegistry.run(invocation: invocation)
             return ExitCode.success.rawValue
         } catch let error as CommanderProgramError {
@@ -36,25 +36,25 @@ enum OSXCLIEntrypoint {
 
     private static func printError(message: String) {
         fputs("error: \(message)\n", stderr)
-        fputs("Run `osx --help` for usage.\n", stderr)
+        fputs("Run `ralph --help` for usage.\n", stderr)
         fflush(stderr)
     }
 }
 
 enum OSXCLICommandRegistry {
-    static let program = Program(descriptors: [descriptor(for: OSXRootCommand.self)])
+    static let program = Program(descriptors: [descriptor(for: RalphRootCommand.self)])
 
     static func run(invocation: CommandInvocation) async throws {
         switch invocation.path {
-        case ["osx", "query"]:
+        case ["ralph", "query"]:
             var command = OSXQueryCommand()
             try command.apply(parsedValues: invocation.parsedValues)
             try await command.run()
-        case ["osx", "action"]:
+        case ["ralph", "action"]:
             var command = OSXActionCommand()
             try command.apply(parsedValues: invocation.parsedValues)
             try await command.run()
-        case ["osx", "selector-cache-daemon"]:
+        case ["ralph", "selector-cache-daemon"]:
             var command = OSXSelectorCacheDaemonCommand()
             try command.apply(parsedValues: invocation.parsedValues)
             try await command.run()

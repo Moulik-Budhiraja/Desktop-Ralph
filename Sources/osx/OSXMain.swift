@@ -1,4 +1,4 @@
-// OSXMain.swift - Main entry point for OSX CLI
+// OSXMain.swift - Main entry point for Ralph CLI
 
 import AppKit
 import Foundation
@@ -6,7 +6,7 @@ import OSXQuery
 @preconcurrency import Commander
 
 @main
-struct OSXRootCommand: ParsableCommand {
+struct RalphRootCommand: ParsableCommand {
     static func main() async {
         let code = await OSXCLIEntrypoint.run(arguments: Array(CommandLine.arguments.dropFirst()))
         Foundation.exit(code)
@@ -15,8 +15,8 @@ struct OSXRootCommand: ParsableCommand {
     @preconcurrency nonisolated static var commandDescription: CommandDescription {
         let version = MainActor.assumeIsolated { osxVersion }
         return CommandDescription(
-            commandName: "osx",
-            abstract: "OSX CLI for querying and interacting with Accessibility trees. Version \(version)",
+            commandName: "ralph",
+            abstract: "Ralph CLI for querying and interacting with Accessibility trees. Version \(version)",
             subcommands: [
                 OSXQueryCommand.self,
                 OSXActionCommand.self,
@@ -24,10 +24,10 @@ struct OSXRootCommand: ParsableCommand {
             ],
             usageExamples: [
                 CommandUsageExample(
-                    command: "osx query --app TextEdit \"AXTextArea\"",
+                    command: "ralph query --app TextEdit \"AXTextArea\"",
                     description: "Query an app with the OXQ selector language."),
                 CommandUsageExample(
-                    command: "osx action 'send click to 28e6a93cf;'",
+                    command: "ralph action 'send click to 28e6a93cf;'",
                     description: "Execute OXA actions against refs from the cache daemon."),
             ])
     }
@@ -252,7 +252,7 @@ func logDebugVersion(command: String) {
     let version = MainActor.assumeIsolated { osxVersion }
     fputs(
         logSegments(
-            "OSXMain.run: osx \(command) version \(version) build \(osxBuildStamp)",
+            "OSXMain.run: ralph \(command) version \(version) build \(osxBuildStamp)",
             "Detail level: \(GlobalAXLogger.shared.detailLevel).") + "\n",
         stderr)
 }

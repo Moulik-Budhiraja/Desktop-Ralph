@@ -35,6 +35,24 @@
       "name": "Release osx",
       "program": "${workspaceFolder:cursor-build}/.build/release/osx",
       "preLaunchTask": "swift: Build Release osx"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Debug ralph",
+      "program": "${workspaceFolder:cursor-build}/.build/debug/ralph",
+      "preLaunchTask": "swift: Build Debug ralph"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Release ralph",
+      "program": "${workspaceFolder:cursor-build}/.build/release/ralph",
+      "preLaunchTask": "swift: Build Release ralph"
     }
   ]
 }

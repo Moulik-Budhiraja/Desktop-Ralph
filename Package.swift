@@ -17,7 +17,7 @@ let package = Package(
     ],
     products: [
         .library(name: "OSXQuery", targets: ["OSXQuery"]),
-        .executable(name: "osx", targets: ["osx"]),
+        .executable(name: "ralph", targets: ["ralph"]),
     ],
     dependencies: [
         .package(url: "https://github.com/steipete/Commander.git", exact: "0.2.1"),
@@ -35,7 +35,7 @@ let package = Package(
             swiftSettings: approachableConcurrencySettings
         ),
         .executableTarget(
-            name: "osx",
+            name: "ralph",
             dependencies: [
                 "OSXQuery",
                 .product(name: "Commander", package: "Commander"),
@@ -54,7 +54,7 @@ let package = Package(
         .testTarget(
             name: "osxTests",
             dependencies: [
-                "osx",
+                "ralph",
                 "OSXQuery",
             ],
             path: "Tests/osxTests",
