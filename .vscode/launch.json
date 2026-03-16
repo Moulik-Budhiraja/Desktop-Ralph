@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Debug cursor-build",
+      "program": "${workspaceFolder:cursor-build}/.build/debug/cursor-build",
+      "preLaunchTask": "swift: Build Debug cursor-build"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:cursor-build}",
+      "name": "Release cursor-build",
+      "program": "${workspaceFolder:cursor-build}/.build/release/cursor-build",
+      "preLaunchTask": "swift: Build Release cursor-build"
+    }
+  ]
+}
