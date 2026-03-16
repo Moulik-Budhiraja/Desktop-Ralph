@@ -106,7 +106,7 @@ final class PenguinOverlayController {
         while Date() < endDate {
             let elapsed = Date().timeIntervalSince(startedAt)
             let progress = min(1, elapsed / duration)
-            let eased = self.easeOutCubic(progress)
+            let eased = self.easeInOutCubic(progress)
             self.overlayView.placeholderFrame = self.interpolate(from: startFrame, to: endFrame, progress: eased)
             self.window.displayIfNeeded()
             self.overlayView.displayIfNeeded()
@@ -128,9 +128,13 @@ final class PenguinOverlayController {
         return CGRect(origin: origin, size: size).integral
     }
 
-    private func easeOutCubic(_ progress: Double) -> CGFloat {
-        let inverse = 1 - progress
-        return CGFloat(1 - (inverse * inverse * inverse))
+    private func easeInOutCubic(_ progress: Double) -> CGFloat {
+        if progress < 0.5 {
+            return CGFloat(4 * progress * progress * progress)
+        }
+
+        let adjusted = (-2 * progress) + 2
+        return CGFloat(1 - ((adjusted * adjusted * adjusted) / 2))
     }
 
     private func pumpRunLoop(for dwellTime: TimeInterval) {
