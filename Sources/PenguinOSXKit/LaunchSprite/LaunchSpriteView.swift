@@ -147,11 +147,18 @@ private final class RalphSpeechBubbleView: NSView {
 
     override func layout() {
         super.layout()
-        self.textField.frame = CGRect(
+        let contentRect = CGRect(
             x: 18,
             y: 18,
             width: self.bounds.width - 30,
             height: self.bounds.height - 28)
+        let fittingSize = self.textField.sizeThatFits(contentRect.size)
+        let centeredHeight = min(fittingSize.height, contentRect.height)
+        self.textField.frame = CGRect(
+            x: contentRect.minX,
+            y: contentRect.minY + (contentRect.height - centeredHeight) / 2,
+            width: contentRect.width,
+            height: centeredHeight)
     }
 
     override func draw(_ dirtyRect: NSRect) {
