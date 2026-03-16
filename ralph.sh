@@ -23,4 +23,4 @@ All focused apps: ${ALL_FOCUSED_APPS:-<unknown>}
 EOF
 )
 
-codex "$prompt"
+codex --dangerously-bypass-approvals-and-sandbox "$prompt"
