@@ -117,13 +117,19 @@ private enum PenguinAppHost {
     }
 
     private static func runWanderLoop(using controller: LaunchSpriteWindowController) async {
+        if let screenFrame = NSScreen.main?.visibleFrame {
+            let start = CGPoint(x: screenFrame.midX - 146, y: screenFrame.midY - 104)
+            controller.setSpriteOrigin(start)
+            try? await Task.sleep(for: .milliseconds(900))
+        }
+
         while true {
             let start = controller.currentSpriteOrigin() ?? controller.randomSpriteOrigin(minimumTravelDistance: 0)
-            let destination = controller.randomSpriteOrigin()
+            let destination = controller.randomSpriteOrigin(minimumTravelDistance: 280)
             let distance = hypot(destination.x - start.x, destination.y - start.y)
-            let duration = max(1.2, min(3.8, TimeInterval(distance / 180)))
+            let duration = max(1.8, min(4.8, TimeInterval(distance / 150)))
 
-            try? await Task.sleep(for: .milliseconds(Int.random(in: 300...1100)))
+            try? await Task.sleep(for: .milliseconds(Int.random(in: 900...1800)))
             await controller.moveSprite(from: start, to: destination, duration: duration)
         }
     }
