@@ -92,7 +92,7 @@ private enum PenguinAppHost {
         controller.show()
         Self.launchController = controller
         Task { @MainActor in
-            await Self.runLaunchDemo(using: controller)
+            await Self.runWanderLoop(using: controller)
         }
 
         let delegate = AppDelegate(controller: controller)
@@ -116,13 +116,16 @@ private enum PenguinAppHost {
         }
     }
 
-    private static func runLaunchDemo(using controller: LaunchSpriteWindowController) async {
-        guard let screenFrame = NSScreen.main?.visibleFrame else { return }
-        let start = CGPoint(x: screenFrame.midX - 240, y: screenFrame.midY - 60)
-        let end = CGPoint(x: screenFrame.midX + 80, y: screenFrame.midY - 60)
-        controller.setSpriteOrigin(start)
-        try? await Task.sleep(for: .milliseconds(400))
-        await controller.moveSprite(from: start, to: end, duration: 2.4)
+    private static func runWanderLoop(using controller: LaunchSpriteWindowController) async {
+        while true {
+            let start = controller.currentSpriteOrigin() ?? controller.randomSpriteOrigin(minimumTravelDistance: 0)
+            let destination = controller.randomSpriteOrigin()
+            let distance = hypot(destination.x - start.x, destination.y - start.y)
+            let duration = max(1.2, min(3.8, TimeInterval(distance / 180)))
+
+            try? await Task.sleep(for: .milliseconds(Int.random(in: 300...1100)))
+            await controller.moveSprite(from: start, to: destination, duration: duration)
+        }
     }
 }
 

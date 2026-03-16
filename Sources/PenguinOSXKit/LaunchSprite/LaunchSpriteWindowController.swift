@@ -84,6 +84,39 @@ final class LaunchSpriteWindowController: NSWindowController {
         self.spriteView.playIdleSpin()
     }
 
+    func currentSpriteOrigin() -> CGPoint? {
+        self.window?.frame.origin
+    }
+
+    func randomSpriteOrigin(minimumTravelDistance: CGFloat = 140) -> CGPoint {
+        let desktop = NSScreen.screens.map(\.visibleFrame).reduce(CGRect.null) { partial, frame in
+            partial.union(frame)
+        }
+        let fallback = self.window?.frame.origin ?? .zero
+        guard let window, !desktop.isNull else { return fallback }
+
+        let size = window.frame.size
+        let minX = desktop.minX
+        let maxX = desktop.maxX - size.width
+        let minY = desktop.minY
+        let maxY = desktop.maxY - size.height
+        guard minX <= maxX, minY <= maxY else { return fallback }
+
+        let current = window.frame.origin
+        for _ in 0..<12 {
+            let candidate = CGPoint(
+                x: CGFloat.random(in: minX...maxX),
+                y: CGFloat.random(in: minY...maxY))
+            if hypot(candidate.x - current.x, candidate.y - current.y) >= minimumTravelDistance {
+                return candidate
+            }
+        }
+
+        return CGPoint(
+            x: CGFloat.random(in: minX...maxX),
+            y: CGFloat.random(in: minY...maxY))
+    }
+
     private static func randomFrame(for size: CGSize) -> CGRect {
         let screens = NSScreen.screens
         let screen = screens.randomElement() ?? NSScreen.main
