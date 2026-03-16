@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class LaunchSpriteWindowController: NSWindowController {
     private static let spriteDisplaySize = CGSize(width: 128, height: 160)
+    private static let contentSize = CGSize(width: 292, height: 208)
 
     static func make() throws -> LaunchSpriteWindowController {
         let frames = try LaunchSpriteAssetLoader.loadSpriteFrames()
@@ -11,7 +12,7 @@ final class LaunchSpriteWindowController: NSWindowController {
     }
 
     private init(frames: [NSImage]) {
-        let frame = Self.randomFrame(for: Self.spriteDisplaySize)
+        let frame = Self.randomFrame(for: Self.contentSize)
         let contentView = LaunchSpriteView(frame: CGRect(origin: .zero, size: frame.size), frames: frames)
 
         let window = NSWindow(
