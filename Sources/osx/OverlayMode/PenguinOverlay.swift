@@ -5,9 +5,12 @@ import Foundation
 final class PenguinOverlayController {
     static let shared = PenguinOverlayController()
 
+    private static let placeholderSize = CGSize(width: 36, height: 36)
+
     private let window: NSWindow
     private let overlayView: PenguinOverlayView
     private var screenFrame: CGRect
+    private var lastPlaceholderFrame: CGRect?
 
     private init() {
         self.screenFrame = Self.combinedScreenFrame()
@@ -28,21 +31,32 @@ final class PenguinOverlayController {
         self.window.contentView = self.overlayView
     }
 
-    func showPlaceholder(at targetFrame: CGRect, dwellTime: TimeInterval = 0.2) {
+    func showPlaceholder(
+        at targetFrame: CGRect,
+        animationDuration: TimeInterval = 0.18,
+        dwellTime: TimeInterval = 0.2)
+    {
         guard !targetFrame.isNull, !targetFrame.isEmpty else { return }
 
         self.ensureAppReady()
         self.refreshScreenFrame()
-        self.overlayView.placeholderFrame = self.placeholderFrame(for: targetFrame)
+        let destinationFrame = self.placeholderFrame(for: targetFrame)
+        let startingFrame = self.lastPlaceholderFrame ?? self.offscreenStartFrame(for: destinationFrame)
+
+        self.overlayView.placeholderFrame = startingFrame
         self.window.orderFrontRegardless()
         self.window.displayIfNeeded()
         self.overlayView.displayIfNeeded()
+        self.animatePlaceholder(from: startingFrame, to: destinationFrame, duration: animationDuration)
         self.pumpRunLoop(for: dwellTime)
+        self.lastPlaceholderFrame = destinationFrame
         self.hide()
     }
 
     func hide() {
-        self.overlayView.placeholderFrame = nil
+        if let currentFrame = self.overlayView.placeholderFrame {
+            self.lastPlaceholderFrame = currentFrame
+        }
         self.window.orderOut(nil)
     }
 
@@ -62,14 +76,61 @@ final class PenguinOverlayController {
     }
 
     private func placeholderFrame(for targetFrame: CGRect) -> CGRect {
-        let size = CGSize(width: 36, height: 36)
         let localMidX = targetFrame.midX - self.screenFrame.minX
         let localMidYFromTop = targetFrame.midY - self.screenFrame.minY
         let flippedMidY = self.screenFrame.height - localMidYFromTop
         let origin = CGPoint(
-            x: localMidX - (size.width / 2),
-            y: flippedMidY - (size.height / 2))
+            x: localMidX - (Self.placeholderSize.width / 2),
+            y: flippedMidY - (Self.placeholderSize.height / 2))
+        return CGRect(origin: origin, size: Self.placeholderSize).integral
+    }
+
+    private func offscreenStartFrame(for destinationFrame: CGRect) -> CGRect {
+        let startX = max(0, min(self.screenFrame.width - destinationFrame.width, destinationFrame.minX - 120))
+        let startY = min(self.screenFrame.height - destinationFrame.height, destinationFrame.maxY + 80)
+        return CGRect(
+            origin: CGPoint(x: startX, y: max(0, startY)),
+            size: destinationFrame.size).integral
+    }
+
+    private func animatePlaceholder(from startFrame: CGRect, to endFrame: CGRect, duration: TimeInterval) {
+        guard duration > 0 else {
+            self.overlayView.placeholderFrame = endFrame
+            self.overlayView.displayIfNeeded()
+            return
+        }
+
+        let startedAt = Date()
+        let endDate = startedAt.addingTimeInterval(duration)
+
+        while Date() < endDate {
+            let elapsed = Date().timeIntervalSince(startedAt)
+            let progress = min(1, elapsed / duration)
+            let eased = self.easeOutCubic(progress)
+            self.overlayView.placeholderFrame = self.interpolate(from: startFrame, to: endFrame, progress: eased)
+            self.window.displayIfNeeded()
+            self.overlayView.displayIfNeeded()
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
+        }
+
+        self.overlayView.placeholderFrame = endFrame
+        self.window.displayIfNeeded()
+        self.overlayView.displayIfNeeded()
+    }
+
+    private func interpolate(from startFrame: CGRect, to endFrame: CGRect, progress: CGFloat) -> CGRect {
+        let origin = CGPoint(
+            x: startFrame.origin.x + ((endFrame.origin.x - startFrame.origin.x) * progress),
+            y: startFrame.origin.y + ((endFrame.origin.y - startFrame.origin.y) * progress))
+        let size = CGSize(
+            width: startFrame.size.width + ((endFrame.size.width - startFrame.size.width) * progress),
+            height: startFrame.size.height + ((endFrame.size.height - startFrame.size.height) * progress))
         return CGRect(origin: origin, size: size).integral
+    }
+
+    private func easeOutCubic(_ progress: Double) -> CGFloat {
+        let inverse = 1 - progress
+        return CGFloat(1 - (inverse * inverse * inverse))
     }
 
     private func pumpRunLoop(for dwellTime: TimeInterval) {
@@ -119,9 +180,11 @@ private final class PenguinOverlayView: NSView {
 
 @MainActor
 struct OverlayActionExecutionMiddleware: ActionExecutionMiddleware {
+    let animationDuration: TimeInterval
     let dwellTime: TimeInterval
 
-    init(dwellTime: TimeInterval = 0.2) {
+    init(animationDuration: TimeInterval = 0.18, dwellTime: TimeInterval = 0.2) {
+        self.animationDuration = animationDuration
         self.dwellTime = dwellTime
     }
 
@@ -130,7 +193,10 @@ struct OverlayActionExecutionMiddleware: ActionExecutionMiddleware {
             return
         }
 
-        PenguinOverlayController.shared.showPlaceholder(at: targetFrame, dwellTime: self.dwellTime)
+        PenguinOverlayController.shared.showPlaceholder(
+            at: targetFrame,
+            animationDuration: self.animationDuration,
+            dwellTime: self.dwellTime)
     }
 
     private func primaryTargetFrame(
