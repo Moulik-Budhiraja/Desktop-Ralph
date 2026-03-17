@@ -175,6 +175,11 @@ final class RalphSpriteWindowController: NSWindowController {
     }
 
     static func origin(forWindowHandlePoint point: CGPoint, edge: RalphWindowPullOverlay.Edge) -> CGPoint {
+        let desktop = Self.desktopFrame()
+        let localY = point.y - desktop.minY
+        let flippedPoint = CGPoint(
+            x: point.x,
+            y: desktop.minY + (desktop.height - localY))
         let offset: CGPoint
         switch edge {
         case .left:
@@ -186,8 +191,8 @@ final class RalphSpriteWindowController: NSWindowController {
         }
 
         return CGPoint(
-            x: point.x - offset.x,
-            y: point.y - offset.y)
+            x: flippedPoint.x - offset.x,
+            y: flippedPoint.y - offset.y)
     }
 
     static func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
