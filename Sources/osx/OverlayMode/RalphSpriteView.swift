@@ -3,7 +3,10 @@ import Foundation
 
 @MainActor
 final class RalphSpriteView: NSView {
+    private static let bubbleSize = CGSize(width: 92, height: 40)
+    private static let bubbleOrigin = CGPoint(x: 22, y: 106)
     private let imageView: NSImageView
+    private let bubbleView: RalphSpeechBubbleView
     private let animationSet: RalphSpriteAnimationSet
     private var currentAnimation: RalphSpriteAnimation?
     private var currentIdleDirection: RalphSpriteMovementDirection = .down
@@ -13,6 +16,7 @@ final class RalphSpriteView: NSView {
     init(frame frameRect: NSRect, animations: RalphSpriteAnimationSet) {
         self.animationSet = animations
         self.imageView = NSImageView(frame: frameRect)
+        self.bubbleView = RalphSpeechBubbleView(message: "Ralph is here")
         super.init(frame: frameRect)
 
         self.wantsLayer = true
@@ -20,6 +24,7 @@ final class RalphSpriteView: NSView {
         self.imageView.imageScaling = .scaleProportionallyUpOrDown
         self.imageView.animates = false
         self.addSubview(self.imageView)
+        self.addSubview(self.bubbleView)
         self.showIdle(direction: .down)
     }
 
@@ -31,6 +36,9 @@ final class RalphSpriteView: NSView {
     override func layout() {
         super.layout()
         self.imageView.frame = self.bounds
+        self.bubbleView.frame = CGRect(
+            origin: Self.bubbleOrigin,
+            size: Self.bubbleSize)
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
