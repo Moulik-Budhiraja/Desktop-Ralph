@@ -5,7 +5,7 @@ import Foundation
 final class RalphSpriteView: NSView {
     private static let spriteSize = CGSize(width: 128, height: 160)
     private static let bubbleMessage = "Ralph is here"
-    private static let bubbleOrigin = CGPoint(x: spriteSize.width + 16, y: 10)
+    private static let bubbleOrigin = CGPoint(x: spriteSize.width + 22, y: 2)
     private static let trailingPadding: CGFloat = 8
     static let contentSize = CGSize(
         width: bubbleOrigin.x + RalphSpeechBubbleView.preferredSize(for: bubbleMessage).width + trailingPadding,
