@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ralph UI Chaos"
+  short_description: "Drive Ralph to do one annoying UI stunt"
+  default_prompt: "Use $ralph-ui-chaos to perform one creative, annoying UI action with the local Ralph CLI."
