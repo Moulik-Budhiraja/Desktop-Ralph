@@ -48,6 +48,7 @@ struct RalphSpriteAnimationSet {
     let idleRightAnimations: [RalphSpriteAnimation]
     let idleUpAnimations: [RalphSpriteAnimation]
     let idleDownAnimations: [RalphSpriteAnimation]
+    let ambientIdleAnimations: [RalphSpriteAnimation]
     let clickDown: RalphSpriteAnimation
 
     func walkAnimation(for direction: RalphSpriteMovementDirection) -> RalphSpriteAnimation {
@@ -74,6 +75,28 @@ struct RalphSpriteAnimationSet {
         case .down:
             self.idleDownAnimations.randomElement() ?? RalphSpriteAnimation(frames: [self.walkDown.frames[0]], frameDuration: 0.2)
         }
+    }
+
+    func idleAnimations(for direction: RalphSpriteMovementDirection) -> [RalphSpriteAnimation] {
+        let baseAnimations: [RalphSpriteAnimation] = switch direction {
+        case .left:
+            self.idleLeftAnimations
+        case .right:
+            self.idleRightAnimations
+        case .up:
+            self.idleUpAnimations
+        case .down:
+            self.idleDownAnimations
+        }
+
+        let animatedBaseAnimations = baseAnimations.filter { $0.frames.count > 1 }
+        let preferredAnimations = animatedBaseAnimations + self.ambientIdleAnimations
+        let animations = preferredAnimations.isEmpty ? baseAnimations : preferredAnimations
+        return animations.isEmpty ? [self.idleAnimation(for: direction)] : animations
+    }
+
+    func ambientIdleAnimation() -> RalphSpriteAnimation? {
+        self.ambientIdleAnimations.randomElement()
     }
 
     func clickAnimation(for direction: RalphSpriteMovementDirection) -> RalphSpriteAnimation {

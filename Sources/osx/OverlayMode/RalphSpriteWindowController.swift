@@ -33,9 +33,10 @@ final class RalphSpriteWindowController: NSWindowController {
             frame: CGRect(origin: .zero, size: spriteWindowSize),
             animations: animations,
             bubbleMessage: bubbleMessage)
+        let initialOrigin = Self.defaultRestingOrigin(windowSize: spriteWindowSize)
 
         let window = NSWindow(
-            contentRect: CGRect(origin: Self.desktopFrame().origin, size: spriteWindowSize),
+            contentRect: CGRect(origin: initialOrigin, size: spriteWindowSize),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false)
@@ -218,7 +219,7 @@ final class RalphSpriteWindowController: NSWindowController {
     }
 
     private static func defaultRestingOrigin(windowSize: CGSize) -> CGPoint {
-        let desktop = Self.desktopFrame()
+        let desktop = NSScreen.main?.visibleFrame ?? Self.desktopFrame()
         return Self.clampedOrigin(
             CGPoint(
                 x: desktop.minX + 48,
@@ -351,6 +352,16 @@ enum RalphSpriteAssetLoader {
         let frontAkimboOne = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_01")
         let frontAkimboTwo = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_02")
         let frontAkimboThree = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_03")
+        let frontWaveOne = try Self.loadFrame(named: "gemini_front_wave_pose_01")
+        let frontWaveTwo = try Self.loadFrame(named: "gemini_front_wave_pose_02")
+        let frontPoint = try Self.loadFrame(named: "gemini_front_point_pose_01")
+        let frontTurnaroundLeft = try Self.loadFrame(named: "gemini_turnaround_front_left_three_quarter_pose_01")
+        let frontTurnaroundRight = try Self.loadFrame(named: "gemini_turnaround_front_right_three_quarter_pose_01")
+        let frontTurnaround = try Self.loadFrame(named: "gemini_turnaround_front_pose_01")
+        let backTurnaround = try Self.loadFrame(named: "gemini_turnaround_back_pose_01")
+        let tumbleOne = try Self.loadFrame(named: "gemini_tumble_pose_01")
+        let tumbleTwo = try Self.loadFrame(named: "gemini_tumble_pose_02")
+        let upsideDown = try Self.loadFrame(named: "gemini_upside_down_pose_01")
         let leftIdleAnimations = [
             RalphSpriteAnimation(frames: [leftIdle, leftPoseTwo, leftPoseThree, leftPoseTwo], frameDuration: 0.16),
             RalphSpriteAnimation(frames: [leftIdle, leftWalkPoseOne, leftIdle, leftWalkPoseTwo], frameDuration: 0.18),
@@ -364,6 +375,13 @@ enum RalphSpriteAssetLoader {
             RalphSpriteAnimation(frames: [frontButtonIdleOne, frontButtonIdleTwo, frontButtonIdleOne], frameDuration: 0.18),
             RalphSpriteAnimation(frames: [frontAkimboOne, frontAkimboTwo, frontAkimboThree, frontAkimboTwo], frameDuration: 0.18),
             RalphSpriteAnimation(frames: [frontCelebrateOne, frontCelebrateTwo], frameDuration: 0.22),
+        ]
+        let ambientIdleAnimations = [
+            RalphSpriteAnimation(frames: [frontWaveOne, frontWaveTwo, frontWaveOne, frontIdle], frameDuration: 0.18, repeats: false),
+            RalphSpriteAnimation(frames: [frontCelebrateOne, frontCelebrateTwo, frontCelebrateOne, frontIdle], frameDuration: 0.18, repeats: false),
+            RalphSpriteAnimation(frames: [frontPoint, frontWaveOne, frontPoint, frontIdle], frameDuration: 0.16, repeats: false),
+            RalphSpriteAnimation(frames: [frontTurnaround, frontTurnaroundLeft, backTurnaround, frontTurnaroundRight, frontTurnaround], frameDuration: 0.14, repeats: false),
+            RalphSpriteAnimation(frames: [tumbleOne, upsideDown, tumbleTwo, frontIdle], frameDuration: 0.14, repeats: false),
         ]
         let clickDown = RalphSpriteAnimation(
             frames: [
@@ -388,6 +406,7 @@ enum RalphSpriteAssetLoader {
             idleRightAnimations: leftIdleAnimations.map(Self.mirror),
             idleUpAnimations: upIdleAnimations,
             idleDownAnimations: downIdleAnimations,
+            ambientIdleAnimations: ambientIdleAnimations,
             clickDown: clickDown)
     }
 

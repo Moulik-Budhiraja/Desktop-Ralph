@@ -16,6 +16,7 @@ final class RalphSpriteView: NSView {
     private var animationCompletion: (() -> Void)?
     private var frameIndex = 0
     private var animationTimer: Timer?
+    private var idleContinuationWorkItem: DispatchWorkItem?
 
     static func contentSize(for message: String) -> CGSize {
         let bubbleSize = RalphSpeechBubbleView.preferredSize(for: message)
@@ -67,9 +68,11 @@ final class RalphSpriteView: NSView {
 
     func showIdle(direction: RalphSpriteMovementDirection) {
         self.currentIdleDirection = direction
-        let idleAnimation = self.animationSet.idleAnimation(for: direction)
+        let idleAnimation = self.animationSet.idleAnimations(for: direction).randomElement()
+            ?? self.animationSet.idleAnimation(for: direction)
         guard idleAnimation.frames.count > 1 else {
             self.play(animation: idleAnimation)
+            self.scheduleIdleContinuation(direction: direction, after: 0.35)
             return
         }
 
@@ -113,6 +116,8 @@ final class RalphSpriteView: NSView {
     }
 
     private func stopAnimation() {
+        self.idleContinuationWorkItem?.cancel()
+        self.idleContinuationWorkItem = nil
         self.animationTimer?.invalidate()
         self.animationTimer = nil
         self.animationCompletion = nil
@@ -158,5 +163,14 @@ final class RalphSpriteView: NSView {
             self.animationCompletion = nil
             completion()
         }
+    }
+
+    private func scheduleIdleContinuation(direction: RalphSpriteMovementDirection, after delay: TimeInterval) {
+        self.idleContinuationWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.showIdle(direction: direction)
+        }
+        self.idleContinuationWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 }
