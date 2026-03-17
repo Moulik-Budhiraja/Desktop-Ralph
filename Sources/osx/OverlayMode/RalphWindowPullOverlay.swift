@@ -101,13 +101,13 @@ final class RalphWindowPullOverlay: NSWindowController {
     static func handlePoint(for frame: CGRect, edge: Edge) -> CGPoint {
         switch edge {
         case .left:
-            return CGPoint(x: frame.minX, y: frame.midY)
-        case .right:
             return CGPoint(x: frame.maxX, y: frame.midY)
+        case .right:
+            return CGPoint(x: frame.minX, y: frame.midY)
         case .top:
-            return CGPoint(x: frame.midX, y: frame.minY)
-        case .bottom:
             return CGPoint(x: frame.midX, y: frame.maxY)
+        case .bottom:
+            return CGPoint(x: frame.midX, y: frame.minY)
         }
     }
 }
