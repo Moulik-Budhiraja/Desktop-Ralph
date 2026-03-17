@@ -41,6 +41,9 @@ let package = Package(
                 .product(name: "Commander", package: "Commander"),
             ],
             path: "Sources/osx",
+            resources: [
+                .process("OverlayMode/Resources"),
+            ],
             swiftSettings: approachableConcurrencySettings
         ),
         .testTarget(
