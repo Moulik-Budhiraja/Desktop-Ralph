@@ -3,7 +3,14 @@ import Foundation
 
 @MainActor
 final class RalphSpriteWindowController: NSWindowController {
-    private static let spriteSize = CGSize(width: 128, height: 160)
+    private static let penguinSize = CGSize(width: 128, height: 160)
+    private static let bubbleSideWidth: CGFloat = 92
+    private static let bubbleGap: CGFloat = 4
+    private static var spriteWindowSize: CGSize {
+        CGSize(
+            width: penguinSize.width + bubbleSideWidth + bubbleGap,
+            height: penguinSize.height)
+    }
     private static let interactionOffset = CGPoint(x: 64, y: 28)
 
     private let spriteView: RalphSpriteView
@@ -19,11 +26,11 @@ final class RalphSpriteWindowController: NSWindowController {
     private init(animations: RalphSpriteAnimationSet) {
         self.animations = animations
         self.spriteView = RalphSpriteView(
-            frame: CGRect(origin: .zero, size: Self.spriteSize),
+            frame: CGRect(origin: .zero, size: Self.spriteWindowSize),
             animations: animations)
 
         let window = NSWindow(
-            contentRect: CGRect(origin: Self.desktopFrame().origin, size: Self.spriteSize),
+            contentRect: CGRect(origin: Self.desktopFrame().origin, size: Self.spriteWindowSize),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false)
@@ -106,15 +113,15 @@ final class RalphSpriteWindowController: NSWindowController {
         let desktop = Self.desktopFrame()
         let start = CGPoint(
             x: max(desktop.minX, destination.x - 120),
-            y: min(desktop.maxY - Self.spriteSize.height, destination.y + 80))
+            y: min(desktop.maxY - Self.spriteWindowSize.height, destination.y + 80))
         return Self.clampedOrigin(start)
     }
 
     private static func clampedOrigin(_ origin: CGPoint) -> CGPoint {
         let desktop = Self.desktopFrame()
         return CGPoint(
-            x: min(max(origin.x, desktop.minX), desktop.maxX - Self.spriteSize.width),
-            y: min(max(origin.y, desktop.minY), desktop.maxY - Self.spriteSize.height))
+            x: min(max(origin.x, desktop.minX), desktop.maxX - Self.spriteWindowSize.width),
+            y: min(max(origin.y, desktop.minY), desktop.maxY - Self.spriteWindowSize.height))
     }
 
     private static func desktopFrame() -> CGRect {

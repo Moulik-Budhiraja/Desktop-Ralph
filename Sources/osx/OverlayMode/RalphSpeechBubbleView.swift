@@ -3,32 +3,25 @@ import AppKit
 @MainActor
 final class RalphSpeechBubbleView: NSView {
     private let bubbleColor = NSColor(calibratedWhite: 0.98, alpha: 0.95)
-    private let textField: NSTextField
+    private let message: String
+    private let textColor = NSColor(calibratedWhite: 0.1, alpha: 0.95)
+    private static let preferredFontNames = [
+        "Menlo",
+        "Menlo-Regular",
+        "Courier New",
+        "Courier",
+    ]
+    private static let maximumFontSize: CGFloat = 12
+    private static let minimumFontSize: CGFloat = 8
+    private static let horizontalInset: CGFloat = 6
+    private static let verticalInset: CGFloat = 5
 
     init(message: String) {
-        self.textField = NSTextField(labelWithString: message)
+        self.message = message
         super.init(frame: .zero)
 
         self.wantsLayer = true
         self.layer?.backgroundColor = NSColor.clear.cgColor
-
-        self.textField.textColor = .black
-        self.textField.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        self.textField.alignment = .center
-        self.textField.lineBreakMode = .byWordWrapping
-        self.textField.isBezeled = false
-        self.textField.drawsBackground = false
-        self.textField.isEditable = false
-        self.textField.isSelectable = false
-        self.textField.translatesAutoresizingMaskIntoConstraints = false
-        self.addSubview(self.textField)
-
-        NSLayoutConstraint.activate([
-            self.textField.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 8),
-            self.textField.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -8),
-            self.textField.topAnchor.constraint(equalTo: self.topAnchor, constant: 6),
-            self.textField.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -10)
-        ])
     }
 
     @available(*, unavailable)
@@ -40,32 +33,77 @@ final class RalphSpeechBubbleView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        let bubblePath = NSBezierPath(roundedRect: self.bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 10, yRadius: 10)
+        self.bubbleColor.setFill()
+        bubblePath.fill()
+        self.bubbleColor.setStroke()
+        bubblePath.stroke()
 
-        guard let context = NSGraphicsContext.current else {
-            return
+        let contentRect = self.bounds.insetBy(
+            dx: Self.horizontalInset,
+            dy: Self.verticalInset)
+        guard !contentRect.isEmpty, !self.message.isEmpty else { return }
+
+        let font = self.fittedFont(for: contentRect)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: self.textColor,
+            .paragraphStyle: paragraphStyle,
+        ]
+
+        let textRect = NSString(string: self.message).boundingRect(
+            with: contentRect.size,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributes)
+        let centeredRect = CGRect(
+            x: contentRect.minX + ((contentRect.width - textRect.width) / 2),
+            y: contentRect.minY + ((contentRect.height - textRect.height) / 2),
+            width: textRect.width,
+            height: textRect.height)
+            .integral
+
+        (NSString(string: self.message) as NSString).draw(
+            with: centeredRect,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributes,
+            context: nil)
+    }
+
+    private func fittedFont(for bounds: CGRect) -> NSFont {
+        let text = NSString(string: self.message)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        var fontSize = Self.maximumFontSize
+        while fontSize >= Self.minimumFontSize {
+            let font = Self.pickFont(size: fontSize)
+            let textRect = text.boundingRect(
+                with: bounds.size,
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: [
+                    .font: font,
+                    .paragraphStyle: paragraphStyle,
+                ])
+
+            if textRect.height <= bounds.height && textRect.width <= bounds.width {
+                return font
+            }
+            fontSize -= 0.5
         }
 
-        NSColor.clear.setFill()
-        context.cgContext.fill(dirtyRect)
+        return Self.pickFont(size: Self.minimumFontSize)
+    }
 
-        let bubbleRect = CGRect(
-            x: 0,
-            y: 8,
-            width: bounds.width,
-            height: bounds.height - 8)
-
-        let rounded = NSBezierPath(roundedRect: bubbleRect, xRadius: 10, yRadius: 10)
-
-        let tail = NSBezierPath()
-        tail.move(to: CGPoint(x: 20, y: 8))
-        tail.line(to: CGPoint(x: 30, y: 0))
-        tail.line(to: CGPoint(x: 40, y: 8))
-
-        self.bubbleColor.setFill()
-        self.bubbleColor.setStroke()
-        rounded.fill()
-        rounded.stroke()
-        tail.fill()
-        tail.stroke()
+    private static func pickFont(size: CGFloat) -> NSFont {
+        for name in Self.preferredFontNames {
+            if let font = NSFont(name: name, size: size) {
+                return font
+            }
+        }
+        return NSFont.monospacedSystemFont(ofSize: size, weight: .bold)
     }
 }

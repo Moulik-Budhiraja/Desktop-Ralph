@@ -3,8 +3,9 @@ import Foundation
 
 @MainActor
 final class RalphSpriteView: NSView {
-    private static let bubbleSize = CGSize(width: 92, height: 40)
-    private static let bubbleOrigin = CGPoint(x: 22, y: 106)
+    private static let penguinSize = CGSize(width: 128, height: 160)
+    private static let bubbleSize = CGSize(width: 92, height: 36)
+    private static let bubbleOrigin = CGPoint(x: 132, y: 62)
     private let imageView: NSImageView
     private let bubbleView: RalphSpeechBubbleView
     private let animationSet: RalphSpriteAnimationSet
@@ -15,7 +16,7 @@ final class RalphSpriteView: NSView {
 
     init(frame frameRect: NSRect, animations: RalphSpriteAnimationSet) {
         self.animationSet = animations
-        self.imageView = NSImageView(frame: frameRect)
+        self.imageView = NSImageView(frame: CGRect(origin: .zero, size: Self.penguinSize))
         self.bubbleView = RalphSpeechBubbleView(message: "Ralph is here")
         super.init(frame: frameRect)
 
@@ -35,7 +36,7 @@ final class RalphSpriteView: NSView {
 
     override func layout() {
         super.layout()
-        self.imageView.frame = self.bounds
+        self.imageView.frame = CGRect(origin: .zero, size: Self.penguinSize)
         self.bubbleView.frame = CGRect(
             origin: Self.bubbleOrigin,
             size: Self.bubbleSize)
