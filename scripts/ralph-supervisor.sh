@@ -9,16 +9,17 @@ PID_FILE="${RALPH_SUPERVISOR_PID_FILE:-/tmp/ralph-supervisor.pid}"
 STOP_FILE="${RALPH_SUPERVISOR_STOP_FILE:-/tmp/ralph-supervisor.stop}"
 LOG_FILE="${RALPH_SUPERVISOR_LOG_FILE:-/tmp/ralph-supervisor.log}"
 WORKDIR="${RALPH_SUPERVISOR_WORKDIR:-$REPO_ROOT}"
-MAX_RESTARTS="${RALPH_SUPERVISOR_MAX_RESTARTS:-20}"
+MAX_RESTARTS="${RALPH_SUPERVISOR_MAX_RESTARTS:-infinite}"
 RESTART_DELAY_SECONDS="${RALPH_SUPERVISOR_RESTART_DELAY_SECONDS:-1}"
 CODEX_BIN="${CODEX_BIN:-codex}"
 CODEX_SUBCOMMAND="${CODEX_SUBCOMMAND:-exec}"
-CODEX_EXTRA_ARGS="${CODEX_EXTRA_ARGS:-}"
-SKILL_PATH="${RALPH_SKILL_PATH:-/Users/moulik/.agents/skills/tart-macos-actions/SKILL.md}"
+CODEX_EXTRA_ARGS="${CODEX_EXTRA_ARGS:---dangerously-bypass-approvals-and-sandbox}"
+SKILL_PATH="${RALPH_SKILL_PATH:-/Users/moulik/.codex/skills/ralph-ui-chaos/SKILL.md}"
 
 DEFAULT_PROMPT=$(cat <<EOF
 Use the local Ralph tooling in ${REPO_ROOT} to create a harmless, playful on-screen spectacle for the user.
-Reference the skill at ${SKILL_PATH} explicitly in your reasoning, but stay focused on Ralph and desktop antics rather than GitHub Actions.
+Use the skill at ${SKILL_PATH}.
+Use this skill to annoy the user with Ralph in a harmless, mischievous way.
 Reuse the existing Ralph daemon when possible, keep actions reversible and non-destructive, and do not send messages, submit forms, buy anything, or bypass safeguards.
 If you finish a short stunt, start another harmless one instead of stopping immediately.
 EOF
@@ -38,7 +39,7 @@ Environment overrides:
   CODEX_SUBCOMMAND                  Default: exec
   CODEX_EXTRA_ARGS                  Extra args split on shell words
   RALPH_SUPERVISOR_PROMPT           Prompt passed to codex exec
-  RALPH_SUPERVISOR_MAX_RESTARTS     Default: 20
+  RALPH_SUPERVISOR_MAX_RESTARTS     Default: infinite
   RALPH_SUPERVISOR_RESTART_DELAY_SECONDS Default: 1
   RALPH_SUPERVISOR_WORKDIR          Default: repo root
   RALPH_SUPERVISOR_PID_FILE         Default: /tmp/ralph-supervisor.pid
@@ -48,7 +49,7 @@ Environment overrides:
 
 Notes:
   The Ralph daemon already uses a shared per-user socket, so restarted workers can reuse it automatically.
-  This supervisor intentionally does not add dangerous bypass or sandbox-disabling flags.
+  This supervisor defaults to Codex's no-sandbox, bypass-approvals mode unless CODEX_EXTRA_ARGS overrides it.
 EOF
 }
 
