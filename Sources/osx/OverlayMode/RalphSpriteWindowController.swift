@@ -111,6 +111,50 @@ final class RalphSpriteWindowController: NSWindowController {
         shell.hide()
     }
 
+    func pullLiveWindow(
+        edge: RalphWindowPullOverlay.Edge,
+        windowStartFrame: CGRect,
+        windowDestinationFrame: CGRect,
+        dwellTime: TimeInterval,
+        moveWindow: (CGRect) -> Void)
+    {
+        let stageHandle = RalphWindowPullOverlay.handlePoint(
+            for: Self.visibleEdgeFrame(from: windowStartFrame, edge: edge),
+            edge: edge)
+        let destinationHandle = RalphWindowPullOverlay.handlePoint(
+            for: windowDestinationFrame,
+            edge: edge)
+        let currentOrigin = self.window?.frame.origin ?? .zero
+        let stageOrigin = Self.origin(forInteractionPoint: stageHandle)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: stageOrigin)
+
+        self.animateWalk(from: startOrigin, to: stageOrigin)
+        moveWindow(windowStartFrame)
+
+        let direction = RalphSpriteMovementDirection.resolve(
+            from: stageOrigin,
+            to: Self.origin(forInteractionPoint: destinationHandle))
+        self.beginWalk(at: stageOrigin, direction: direction)
+        RalphMotionAnimator.animate(
+            from: windowStartFrame.origin,
+            to: windowDestinationFrame.origin,
+            desktopWidth: Self.desktopFrame().width)
+        { [weak self] windowOrigin, progress in
+            guard let self else { return }
+            let currentFrame = CGRect(origin: windowOrigin, size: windowDestinationFrame.size)
+            let currentHandle = RalphWindowPullOverlay.handlePoint(for: currentFrame, edge: edge)
+            let spriteOrigin = Self.origin(forInteractionPoint: currentHandle)
+            let currentDirection = progress >= 1
+                ? direction
+                : RalphSpriteMovementDirection.resolve(from: stageOrigin, to: spriteOrigin)
+            self.updateWalk(to: spriteOrigin, direction: currentDirection)
+            moveWindow(currentFrame)
+        }
+
+        self.endWalk(at: Self.origin(forInteractionPoint: destinationHandle), direction: direction)
+        self.dwell(for: dwellTime)
+    }
+
     static func spriteOrigin(for targetFrame: CGRect) -> CGPoint {
         let desktop = Self.desktopFrame()
         let targetCenter = CGPoint(x: targetFrame.midX, y: targetFrame.midY)

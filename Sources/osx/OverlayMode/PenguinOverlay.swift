@@ -5,7 +5,7 @@ import Foundation
 final class PenguinOverlayController {
     static let shared = PenguinOverlayController()
 
-    private let spriteWindowController = RalphSpriteWindowController.make()
+    let spriteWindowController = RalphSpriteWindowController.make()
 
     func showAction(
         _ statement: OXAStatement,
@@ -36,18 +36,18 @@ final class PenguinOverlayController {
                 spriteWindowController.walk(to: targetFrame)
                 spriteWindowController.dwell(for: dwellTime)
             }
-        case let .open(app):
-            self.showOpenWindow(for: app, spriteWindowController: spriteWindowController, dwellTime: dwellTime)
+        case .open:
+            return
         case .sleep, .close:
             return
         }
     }
 
-    private func showOpenWindow(
+    func showSyntheticOpenWindow(
         for app: String,
-        spriteWindowController: RalphSpriteWindowController,
         dwellTime: TimeInterval)
     {
+        guard let spriteWindowController else { return }
         let desktop = RalphSpriteWindowController.desktopFrame()
         let destinationFrame = RalphWindowPullOverlay.destinationFrame(in: desktop)
         let currentPoint = spriteWindowController.window?.frame.origin ?? desktop.origin

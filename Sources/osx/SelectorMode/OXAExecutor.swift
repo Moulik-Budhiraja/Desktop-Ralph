@@ -965,6 +965,10 @@ enum OXAExecutor {
     }
 
     private static func openApplication(_ applicationIdentifier: String) throws {
+        if RealWindowOpenVisualizer.openApplication(applicationIdentifier) {
+            return
+        }
+
         if let runningApp = self.runningApplications(matching: applicationIdentifier).first(where: { !$0.isTerminated }) {
             let targetBundleIdentifier = runningApp.bundleIdentifier ??
                 (self.looksLikeBundleIdentifier(applicationIdentifier) ? applicationIdentifier : nil)
