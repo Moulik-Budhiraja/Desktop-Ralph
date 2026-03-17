@@ -54,6 +54,8 @@ struct OSXQueryCommand: OSXLeafCommand {
     @Option(name: .long, help: "Maximum result rows to print (default 50, 0 = no cap).")
     var limit: Int?
 
+    var bubbleText: String?
+
     @Flag(name: .customLong("no-color"), help: "Disable ANSI color output.")
     var noColor: Bool = false
 
@@ -98,6 +100,7 @@ struct OSXQueryCommand: OSXLeafCommand {
         self.app = parsedValues.options["app"]?.last
         self.maxDepth = try Self.decodeIntOption(parsedValues.options["maxDepth"]?.last, optionName: "--max-depth")
         self.limit = try Self.decodeIntOption(parsedValues.options["limit"]?.last, optionName: "--limit")
+        self.bubbleText = QueryCommandRuntimeContext.consumeBubbleText()
         self.selector = try Self.requireSinglePositional(parsedValues.positional, name: "selector")
     }
 
@@ -109,6 +112,7 @@ struct OSXQueryCommand: OSXLeafCommand {
             let request = try SelectorQueryRequestBuilder.build(
                 app: self.app,
                 selector: self.selector,
+                bubbleText: self.bubbleText,
                 maxDepth: self.maxDepth,
                 limit: self.limit,
                 noColor: self.noColor,
@@ -130,6 +134,7 @@ struct OSXQueryCommand: OSXLeafCommand {
                     let output = try SelectorCacheDaemonClient().execute(request: request)
                     print(output)
                 } else {
+                    PenguinOverlayController.shared.setBubbleMessage(request.bubbleMessage)
                     let runner = SelectorQueryRunner()
                     let report = try runner.execute(request)
                     print(SelectorQueryOutputFormatter.format(report: report))

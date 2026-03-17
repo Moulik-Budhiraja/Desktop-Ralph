@@ -8,6 +8,7 @@ enum SelectorQueryRequestBuilder {
     static func build(
         app: String?,
         selector: String?,
+        bubbleText: String? = nil,
         maxDepth: Int?,
         limit: Int?,
         noColor: Bool,
@@ -22,6 +23,7 @@ enum SelectorQueryRequestBuilder {
     {
         let trimmedApp = app?.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedSelector = selector?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBubbleText = bubbleText?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let hasApp = !(trimmedApp?.isEmpty ?? true)
         let hasSelector = !(trimmedSelector?.isEmpty ?? true)
@@ -64,6 +66,7 @@ enum SelectorQueryRequestBuilder {
         return SelectorQueryRequest(
             appIdentifier: trimmedApp!,
             selector: trimmedSelector!,
+            bubbleMessage: trimmedBubbleText?.isEmpty == false ? trimmedBubbleText : nil,
             maxDepth: maxDepth ?? unlimitedMaxDepth,
             limit: resolvedLimit,
             colorEnabled: stdoutSupportsANSI && !noColor,

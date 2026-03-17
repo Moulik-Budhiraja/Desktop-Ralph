@@ -3,6 +3,8 @@ import Foundation
 
 enum OSXCLIEntrypoint {
     static func run(arguments: [String]) async -> Int32 {
+        let arguments = QueryCommandRuntimeContext.extractBubbleText(from: arguments)
+
         if let first = arguments.first, first.hasPrefix("-"), !OSXHelpRequestDetector.isHelpToken(first) {
             Self.printError(message: "Unknown option \(first)")
             return ExitCode.failure.rawValue
@@ -38,6 +40,41 @@ enum OSXCLIEntrypoint {
         fputs("error: \(message)\n", stderr)
         fputs("Run `ralph --help` for usage.\n", stderr)
         fflush(stderr)
+    }
+}
+
+enum QueryCommandRuntimeContext {
+    private static var bubbleText: String?
+
+    static func extractBubbleText(from arguments: [String]) -> [String] {
+        guard arguments.first == "query" else {
+            self.bubbleText = nil
+            return arguments
+        }
+
+        var sanitized: [String] = []
+        var iterator = arguments.makeIterator()
+
+        while let argument = iterator.next() {
+            if argument == "--bubble-text" {
+                self.bubbleText = iterator.next()
+                continue
+            }
+
+            if argument.hasPrefix("--bubble-text=") {
+                self.bubbleText = String(argument.dropFirst("--bubble-text=".count))
+                continue
+            }
+
+            sanitized.append(argument)
+        }
+
+        return sanitized
+    }
+
+    static func consumeBubbleText() -> String? {
+        defer { self.bubbleText = nil }
+        return self.bubbleText
     }
 }
 

@@ -3,7 +3,7 @@ import AppKit
 @MainActor
 final class RalphSpeechBubbleView: NSView {
     private let bubbleColor = NSColor(calibratedWhite: 0.98, alpha: 0.95)
-    private let message: String
+    private var message: String
     private let textColor = NSColor(calibratedWhite: 0.1, alpha: 0.95)
     private static let preferredFontNames = [
         "Menlo",
@@ -53,6 +53,12 @@ final class RalphSpeechBubbleView: NSView {
     }
 
     override var isFlipped: Bool { true }
+
+    func updateMessage(_ message: String) {
+        guard self.message != message else { return }
+        self.message = message
+        self.needsDisplay = true
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)

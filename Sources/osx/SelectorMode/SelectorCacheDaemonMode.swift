@@ -121,7 +121,9 @@ enum SelectorCacheDaemonServer {
                 throw SelectorCacheDaemonError.invalidRequest("Missing query payload.")
             }
             do {
-                let report = try runner.execute(queryPayload.toSelectorQueryRequest())
+                let request = queryPayload.toSelectorQueryRequest()
+                PenguinOverlayController.shared.setBubbleMessage(request.bubbleMessage)
+                let report = try runner.execute(request)
                 let output = SelectorQueryOutputFormatter.format(report: report)
                 response = SelectorCacheDaemonResponse(success: true, output: output, error: nil)
             } catch let parseError as OXQParseError {
@@ -297,6 +299,7 @@ struct SelectorCacheDaemonClient {
 private struct SelectorCacheDaemonPayload: Codable {
     let appIdentifier: String
     let selector: String
+    let bubbleMessage: String?
     let maxDepth: Int
     let limit: Int
     let colorEnabled: Bool
@@ -308,6 +311,7 @@ private struct SelectorCacheDaemonPayload: Codable {
     init(request: SelectorQueryRequest) {
         self.appIdentifier = request.appIdentifier
         self.selector = request.selector
+        self.bubbleMessage = request.bubbleMessage
         self.maxDepth = request.maxDepth
         self.limit = request.limit
         self.colorEnabled = request.colorEnabled
@@ -321,6 +325,7 @@ private struct SelectorCacheDaemonPayload: Codable {
         SelectorQueryRequest(
             appIdentifier: self.appIdentifier,
             selector: self.selector,
+            bubbleMessage: self.bubbleMessage,
             maxDepth: self.maxDepth,
             limit: self.limit,
             colorEnabled: self.colorEnabled,

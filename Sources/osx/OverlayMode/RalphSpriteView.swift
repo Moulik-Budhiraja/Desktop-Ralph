@@ -4,24 +4,31 @@ import Foundation
 @MainActor
 final class RalphSpriteView: NSView {
     private static let spriteSize = CGSize(width: 128, height: 160)
-    private static let bubbleMessage = "Ralph is here"
+    static let defaultBubbleMessage = "Ralph is here"
     private static let bubbleOrigin = CGPoint(x: spriteSize.width + 22, y: 2)
     private static let trailingPadding: CGFloat = 8
-    static let contentSize = CGSize(
-        width: bubbleOrigin.x + RalphSpeechBubbleView.preferredSize(for: bubbleMessage).width + trailingPadding,
-        height: max(spriteSize.height, bubbleOrigin.y + RalphSpeechBubbleView.preferredSize(for: bubbleMessage).height))
+    private var bubbleMessage: String
     private let imageView: NSImageView
     private let bubbleView: RalphSpeechBubbleView
     private let animationSet: RalphSpriteAnimationSet
     private var currentAnimation: RalphSpriteAnimation?
     private var currentIdleDirection: RalphSpriteMovementDirection = .down
+    private var animationCompletion: (() -> Void)?
     private var frameIndex = 0
     private var animationTimer: Timer?
 
-    init(frame frameRect: NSRect, animations: RalphSpriteAnimationSet) {
+    static func contentSize(for message: String) -> CGSize {
+        let bubbleSize = RalphSpeechBubbleView.preferredSize(for: message)
+        return CGSize(
+            width: bubbleOrigin.x + bubbleSize.width + trailingPadding,
+            height: max(spriteSize.height, bubbleOrigin.y + bubbleSize.height))
+    }
+
+    init(frame frameRect: NSRect, animations: RalphSpriteAnimationSet, bubbleMessage: String = RalphSpriteView.defaultBubbleMessage) {
         self.animationSet = animations
+        self.bubbleMessage = bubbleMessage
         self.imageView = NSImageView(frame: CGRect(origin: .zero, size: Self.spriteSize))
-        self.bubbleView = RalphSpeechBubbleView(message: Self.bubbleMessage)
+        self.bubbleView = RalphSpeechBubbleView(message: bubbleMessage)
         super.init(frame: frameRect)
 
         self.wantsLayer = true
@@ -43,7 +50,7 @@ final class RalphSpriteView: NSView {
         self.imageView.frame = CGRect(origin: .zero, size: Self.spriteSize)
         self.bubbleView.frame = CGRect(
             origin: Self.bubbleOrigin,
-            size: RalphSpeechBubbleView.preferredSize(for: Self.bubbleMessage))
+            size: RalphSpeechBubbleView.preferredSize(for: self.bubbleMessage))
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -55,17 +62,42 @@ final class RalphSpriteView: NSView {
 
     func playWalk(direction: RalphSpriteMovementDirection) {
         self.currentIdleDirection = direction
-        self.currentAnimation = self.animationSet.walkAnimation(for: direction)
-        self.frameIndex = 0
-        self.updateFrame()
-        self.startAnimation()
+        self.play(animation: self.animationSet.walkAnimation(for: direction))
     }
 
     func showIdle(direction: RalphSpriteMovementDirection) {
         self.currentIdleDirection = direction
-        self.currentAnimation = nil
-        self.stopAnimation()
-        self.imageView.image = self.animationSet.idleFrame(for: direction).image
+        let idleAnimation = self.animationSet.idleAnimation(for: direction)
+        guard idleAnimation.frames.count > 1 else {
+            self.play(animation: idleAnimation)
+            return
+        }
+
+        self.play(
+            animation: RalphSpriteAnimation(
+                frames: idleAnimation.frames,
+                frameDuration: idleAnimation.frameDuration,
+                repeats: false)
+        ) { [weak self] in
+            self?.showIdle(direction: direction)
+        }
+    }
+
+    func playClick(direction: RalphSpriteMovementDirection) {
+        self.currentIdleDirection = direction
+        let clickAnimation = self.animationSet.clickAnimation(for: direction)
+        self.play(animation: clickAnimation) { [weak self] in
+            guard let self else { return }
+            self.showIdle(direction: direction)
+        }
+    }
+
+    func updateBubbleMessage(_ message: String) {
+        guard self.bubbleMessage != message else { return }
+        self.bubbleMessage = message
+        self.bubbleView.updateMessage(message)
+        self.needsLayout = true
+        self.layoutSubtreeIfNeeded()
     }
 
     private func startAnimation() {
@@ -83,6 +115,7 @@ final class RalphSpriteView: NSView {
     private func stopAnimation() {
         self.animationTimer?.invalidate()
         self.animationTimer = nil
+        self.animationCompletion = nil
     }
 
     @objc
@@ -92,12 +125,38 @@ final class RalphSpriteView: NSView {
 
     private func advanceFrame() {
         guard let currentAnimation, !currentAnimation.frames.isEmpty else { return }
-        self.frameIndex = (self.frameIndex + 1) % currentAnimation.frames.count
+        let nextIndex = self.frameIndex + 1
+        if nextIndex >= currentAnimation.frames.count {
+            if currentAnimation.repeats {
+                self.frameIndex = 0
+            } else {
+                let completion = self.animationCompletion
+                self.stopAnimation()
+                completion?()
+                return
+            }
+        } else {
+            self.frameIndex = nextIndex
+        }
         self.updateFrame()
     }
 
     private func updateFrame() {
         guard let currentAnimation, !currentAnimation.frames.isEmpty else { return }
         self.imageView.image = currentAnimation.frames[self.frameIndex].image
+    }
+
+    private func play(animation: RalphSpriteAnimation, completion: (() -> Void)? = nil) {
+        self.stopAnimation()
+        self.currentAnimation = animation
+        self.animationCompletion = completion
+        self.frameIndex = 0
+        self.updateFrame()
+        self.startAnimation()
+
+        if animation.frames.count <= 1, let completion {
+            self.animationCompletion = nil
+            completion()
+        }
     }
 }

@@ -95,6 +95,9 @@ enum OSXHelpFormatter {
             for row in optionRows {
                 lines.append(row)
             }
+            if title == "ralph query" {
+                lines.append("  --bubble-text <value>  Set Ralph's speech bubble text for overlay actions triggered from this query session.")
+            }
         }
 
         return lines.joined(separator: "\n")
