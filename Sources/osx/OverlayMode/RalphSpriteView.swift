@@ -3,9 +3,13 @@ import Foundation
 
 @MainActor
 final class RalphSpriteView: NSView {
-    private static let penguinSize = CGSize(width: 128, height: 160)
-    private static let bubbleSize = CGSize(width: 92, height: 36)
-    private static let bubbleOrigin = CGPoint(x: 132, y: 62)
+    private static let spriteSize = CGSize(width: 128, height: 160)
+    private static let bubbleMessage = "Ralph is here"
+    private static let bubbleOrigin = CGPoint(x: spriteSize.width + 16, y: 10)
+    private static let trailingPadding: CGFloat = 8
+    static let contentSize = CGSize(
+        width: bubbleOrigin.x + RalphSpeechBubbleView.preferredSize(for: bubbleMessage).width + trailingPadding,
+        height: max(spriteSize.height, bubbleOrigin.y + RalphSpeechBubbleView.preferredSize(for: bubbleMessage).height))
     private let imageView: NSImageView
     private let bubbleView: RalphSpeechBubbleView
     private let animationSet: RalphSpriteAnimationSet
@@ -16,8 +20,8 @@ final class RalphSpriteView: NSView {
 
     init(frame frameRect: NSRect, animations: RalphSpriteAnimationSet) {
         self.animationSet = animations
-        self.imageView = NSImageView(frame: CGRect(origin: .zero, size: Self.penguinSize))
-        self.bubbleView = RalphSpeechBubbleView(message: "Ralph is here")
+        self.imageView = NSImageView(frame: CGRect(origin: .zero, size: Self.spriteSize))
+        self.bubbleView = RalphSpeechBubbleView(message: Self.bubbleMessage)
         super.init(frame: frameRect)
 
         self.wantsLayer = true
@@ -36,10 +40,10 @@ final class RalphSpriteView: NSView {
 
     override func layout() {
         super.layout()
-        self.imageView.frame = CGRect(origin: .zero, size: Self.penguinSize)
+        self.imageView.frame = CGRect(origin: .zero, size: Self.spriteSize)
         self.bubbleView.frame = CGRect(
             origin: Self.bubbleOrigin,
-            size: Self.bubbleSize)
+            size: RalphSpeechBubbleView.preferredSize(for: Self.bubbleMessage))
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {

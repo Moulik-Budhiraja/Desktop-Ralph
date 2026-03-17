@@ -11,10 +11,13 @@ final class RalphSpeechBubbleView: NSView {
         "Courier New",
         "Courier",
     ]
-    private static let maximumFontSize: CGFloat = 12
+    private static let maximumFontSize: CGFloat = 13
     private static let minimumFontSize: CGFloat = 8
-    private static let horizontalInset: CGFloat = 6
-    private static let verticalInset: CGFloat = 5
+    private static let horizontalInset: CGFloat = 10
+    private static let verticalInset: CGFloat = 8
+    private static let minimumBubbleWidth: CGFloat = 96
+    private static let maximumTextWidth: CGFloat = 156
+    private static let minimumBubbleHeight: CGFloat = 42
 
     init(message: String) {
         self.message = message
@@ -27,6 +30,26 @@ final class RalphSpeechBubbleView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    static func preferredSize(for message: String) -> CGSize {
+        let text = NSString(string: message)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        let font = Self.pickFont(size: Self.maximumFontSize)
+        let textBounds = text.boundingRect(
+            with: CGSize(width: Self.maximumTextWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [
+                .font: font,
+                .paragraphStyle: paragraphStyle,
+            ])
+
+        return CGSize(
+            width: max(Self.minimumBubbleWidth, ceil(textBounds.width) + (Self.horizontalInset * 2)),
+            height: max(Self.minimumBubbleHeight, ceil(textBounds.height) + (Self.verticalInset * 2)))
     }
 
     override var isFlipped: Bool { true }

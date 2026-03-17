@@ -3,14 +3,7 @@ import Foundation
 
 @MainActor
 final class RalphSpriteWindowController: NSWindowController {
-    private static let penguinSize = CGSize(width: 128, height: 160)
-    private static let bubbleSideWidth: CGFloat = 92
-    private static let bubbleGap: CGFloat = 4
-    private static var spriteWindowSize: CGSize {
-        CGSize(
-            width: penguinSize.width + bubbleSideWidth + bubbleGap,
-            height: penguinSize.height)
-    }
+    private static let spriteWindowSize = RalphSpriteView.contentSize
     private static let interactionOffset = CGPoint(x: 64, y: 28)
 
     private let spriteView: RalphSpriteView
