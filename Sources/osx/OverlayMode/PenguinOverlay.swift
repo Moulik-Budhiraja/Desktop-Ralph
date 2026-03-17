@@ -36,9 +36,33 @@ final class PenguinOverlayController {
                 spriteWindowController.walk(to: targetFrame)
                 spriteWindowController.dwell(for: dwellTime)
             }
-        case .sleep, .open, .close:
+        case let .open(app):
+            self.showOpenWindow(for: app, spriteWindowController: spriteWindowController, dwellTime: dwellTime)
+        case .sleep, .close:
             return
         }
+    }
+
+    private func showOpenWindow(
+        for app: String,
+        spriteWindowController: RalphSpriteWindowController,
+        dwellTime: TimeInterval)
+    {
+        let desktop = RalphSpriteWindowController.desktopFrame()
+        let destinationFrame = RalphWindowPullOverlay.destinationFrame(in: desktop)
+        let currentPoint = spriteWindowController.window?.frame.origin ?? desktop.origin
+        let edge: RalphWindowPullOverlay.Edge = currentPoint.x < desktop.midX ? .left : .right
+        let startFrame = RalphWindowPullOverlay.startFrame(
+            for: destinationFrame,
+            edge: edge,
+            in: desktop)
+
+        spriteWindowController.pullWindow(
+            title: app,
+            edge: edge,
+            windowStartFrame: startFrame,
+            windowDestinationFrame: destinationFrame,
+            dwellTime: dwellTime)
     }
 }
 

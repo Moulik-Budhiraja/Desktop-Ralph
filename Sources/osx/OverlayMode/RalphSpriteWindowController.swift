@@ -3,11 +3,13 @@ import Foundation
 
 @MainActor
 final class RalphSpriteWindowController: NSWindowController {
-    private static let spriteSize = CGSize(width: 128, height: 160)
-    private static let interactionOffset = CGPoint(x: 64, y: 28)
+    static let spriteSize = CGSize(width: 128, height: 160)
+    static let interactionOffset = CGPoint(x: 64, y: 28)
 
     private let spriteView: RalphSpriteView
     private let animations: RalphSpriteAnimationSet
+    private var hasPositionedSprite = false
+    private var currentWalkDirection: RalphSpriteMovementDirection?
 
     static func make() -> RalphSpriteWindowController? {
         guard let animations = try? RalphSpriteAssetLoader.loadAnimationSet() else {
@@ -50,38 +52,8 @@ final class RalphSpriteWindowController: NSWindowController {
 
         let destinationOrigin = Self.spriteOrigin(for: targetFrame)
         let currentOrigin = window.frame.origin
-        let startOrigin = currentOrigin == .zero ? Self.offscreenOrigin(toward: destinationOrigin) : currentOrigin
-        let direction = RalphSpriteMovementDirection.resolve(from: startOrigin, to: destinationOrigin)
-        let distance = hypot(destinationOrigin.x - startOrigin.x, destinationOrigin.y - startOrigin.y)
-        let profile = RalphMotionPlanner.makeProfile(distance: distance, desktopWidth: Self.desktopFrame().width)
-
-        window.setFrameOrigin(Self.clampedOrigin(startOrigin))
-        self.spriteView.playWalk(direction: direction)
-        window.orderFrontRegardless()
-
-        guard profile.totalDuration > 0 else {
-            window.setFrameOrigin(Self.clampedOrigin(destinationOrigin))
-            self.spriteView.showIdle(direction: direction)
-            return
-        }
-
-        let startedAt = Date()
-        let endDate = startedAt.addingTimeInterval(profile.totalDuration)
-
-        while Date() < endDate {
-            let elapsed = Date().timeIntervalSince(startedAt)
-            let traveledDistance = RalphMotionPlanner.distanceTraveled(at: elapsed, profile: profile)
-            let progress = min(1, traveledDistance / max(distance, 1))
-            let currentPoint = RalphMotionPlanner.interpolate(
-                from: startOrigin,
-                to: destinationOrigin,
-                progress: CGFloat(progress))
-            window.setFrameOrigin(Self.clampedOrigin(currentPoint))
-            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
-        }
-
-        window.setFrameOrigin(Self.clampedOrigin(destinationOrigin))
-        self.spriteView.showIdle(direction: direction)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: destinationOrigin)
+        self.animateWalk(from: startOrigin, to: destinationOrigin)
     }
 
     func dwell(for duration: TimeInterval) {
@@ -92,17 +64,68 @@ final class RalphSpriteWindowController: NSWindowController {
         }
     }
 
-    private static func spriteOrigin(for targetFrame: CGRect) -> CGPoint {
+    func pullWindow(
+        title: String,
+        edge: RalphWindowPullOverlay.Edge,
+        windowStartFrame: CGRect,
+        windowDestinationFrame: CGRect,
+        dwellTime: TimeInterval)
+    {
+        let shell = RalphWindowPullOverlay.make()
+        let stageHandle = RalphWindowPullOverlay.handlePoint(
+            for: Self.visibleEdgeFrame(from: windowStartFrame, edge: edge),
+            edge: edge)
+        let destinationHandle = RalphWindowPullOverlay.handlePoint(
+            for: windowDestinationFrame,
+            edge: edge)
+        let currentOrigin = self.window?.frame.origin ?? .zero
+        let stageOrigin = Self.origin(forInteractionPoint: stageHandle)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: stageOrigin)
+
+        self.animateWalk(from: startOrigin, to: stageOrigin)
+        shell.show(title: title, frame: windowStartFrame)
+
+        let direction = RalphSpriteMovementDirection.resolve(from: stageOrigin, to: Self.origin(forInteractionPoint: destinationHandle))
+        self.beginWalk(at: stageOrigin, direction: direction)
+        RalphMotionAnimator.animate(
+            from: windowStartFrame.origin,
+            to: windowDestinationFrame.origin,
+            desktopWidth: Self.desktopFrame().width)
+        { [weak self] shellOrigin, progress in
+            guard let self else { return }
+            let currentFrame = CGRect(origin: shellOrigin, size: windowDestinationFrame.size)
+            let currentHandle = RalphWindowPullOverlay.handlePoint(for: currentFrame, edge: edge)
+            let spriteOrigin = Self.origin(forInteractionPoint: currentHandle)
+            let currentDirection: RalphSpriteMovementDirection
+            if progress >= 1 {
+                currentDirection = direction
+            } else {
+                currentDirection = RalphSpriteMovementDirection.resolve(from: stageOrigin, to: spriteOrigin)
+            }
+            self.updateWalk(to: spriteOrigin, direction: currentDirection)
+            shell.move(to: currentFrame)
+        }
+
+        self.endWalk(at: Self.origin(forInteractionPoint: destinationHandle), direction: direction)
+        self.dwell(for: dwellTime)
+        shell.hide()
+    }
+
+    static func spriteOrigin(for targetFrame: CGRect) -> CGPoint {
         let desktop = Self.desktopFrame()
         let targetCenter = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
         let localMidYFromTop = targetCenter.y - desktop.minY
         let flippedCenterY = desktop.minY + (desktop.height - localMidYFromTop)
-        return CGPoint(
-            x: targetCenter.x - Self.interactionOffset.x,
-            y: flippedCenterY - Self.interactionOffset.y)
+        return Self.origin(forInteractionPoint: CGPoint(x: targetCenter.x, y: flippedCenterY))
     }
 
-    private static func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
+    static func origin(forInteractionPoint point: CGPoint) -> CGPoint {
+        CGPoint(
+            x: point.x - Self.interactionOffset.x,
+            y: point.y - Self.interactionOffset.y)
+    }
+
+    static func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
         let desktop = Self.desktopFrame()
         let start = CGPoint(
             x: max(desktop.minX, destination.x - 120),
@@ -110,17 +133,75 @@ final class RalphSpriteWindowController: NSWindowController {
         return Self.clampedOrigin(start)
     }
 
-    private static func clampedOrigin(_ origin: CGPoint) -> CGPoint {
+    static func clampedOrigin(_ origin: CGPoint) -> CGPoint {
         let desktop = Self.desktopFrame()
         return CGPoint(
             x: min(max(origin.x, desktop.minX), desktop.maxX - Self.spriteSize.width),
             y: min(max(origin.y, desktop.minY), desktop.maxY - Self.spriteSize.height))
     }
 
-    private static func desktopFrame() -> CGRect {
+    static func desktopFrame() -> CGRect {
         NSScreen.screens.map(\.frame).reduce(CGRect.null) { partial, frame in
             partial.union(frame)
         }
+    }
+
+    private static func visibleEdgeFrame(from frame: CGRect, edge: RalphWindowPullOverlay.Edge) -> CGRect {
+        let desktop = Self.desktopFrame()
+        switch edge {
+        case .left:
+            return CGRect(x: desktop.minX, y: frame.minY, width: frame.width, height: frame.height)
+        case .right:
+            return CGRect(x: desktop.maxX - frame.width, y: frame.minY, width: frame.width, height: frame.height)
+        case .top:
+            return CGRect(x: frame.minX, y: desktop.maxY - frame.height, width: frame.width, height: frame.height)
+        case .bottom:
+            return CGRect(x: frame.minX, y: desktop.minY, width: frame.width, height: frame.height)
+        }
+    }
+
+    private func animateWalk(from startOrigin: CGPoint, to destinationOrigin: CGPoint) {
+        let direction = RalphSpriteMovementDirection.resolve(from: startOrigin, to: destinationOrigin)
+        self.beginWalk(at: startOrigin, direction: direction)
+        RalphMotionAnimator.animate(
+            from: startOrigin,
+            to: destinationOrigin,
+            desktopWidth: Self.desktopFrame().width)
+        { [weak self] currentOrigin, progress in
+            guard let self else { return }
+            let currentDirection = progress >= 1
+                ? direction
+                : RalphSpriteMovementDirection.resolve(from: startOrigin, to: destinationOrigin)
+            self.updateWalk(to: currentOrigin, direction: currentDirection)
+        }
+        self.endWalk(at: destinationOrigin, direction: direction)
+    }
+
+    private func beginWalk(at origin: CGPoint, direction: RalphSpriteMovementDirection) {
+        guard let window else { return }
+        window.setFrameOrigin(Self.clampedOrigin(origin))
+        window.orderFrontRegardless()
+        self.hasPositionedSprite = true
+        self.currentWalkDirection = direction
+        self.spriteView.playWalk(direction: direction)
+    }
+
+    private func updateWalk(to origin: CGPoint, direction: RalphSpriteMovementDirection) {
+        guard let window else { return }
+        window.setFrameOrigin(Self.clampedOrigin(origin))
+        self.hasPositionedSprite = true
+        if self.currentWalkDirection != direction {
+            self.currentWalkDirection = direction
+            self.spriteView.playWalk(direction: direction)
+        }
+    }
+
+    private func endWalk(at origin: CGPoint, direction: RalphSpriteMovementDirection) {
+        guard let window else { return }
+        window.setFrameOrigin(Self.clampedOrigin(origin))
+        self.hasPositionedSprite = true
+        self.currentWalkDirection = nil
+        self.spriteView.showIdle(direction: direction)
     }
 }
 
