@@ -93,10 +93,13 @@ final class RalphSpriteWindowController: NSWindowController {
     }
 
     private static func spriteOrigin(for targetFrame: CGRect) -> CGPoint {
+        let desktop = Self.desktopFrame()
         let targetCenter = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
+        let localMidYFromTop = targetCenter.y - desktop.minY
+        let flippedCenterY = desktop.minY + (desktop.height - localMidYFromTop)
         return CGPoint(
             x: targetCenter.x - Self.interactionOffset.x,
-            y: targetCenter.y - Self.interactionOffset.y)
+            y: flippedCenterY - Self.interactionOffset.y)
     }
 
     private static func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
