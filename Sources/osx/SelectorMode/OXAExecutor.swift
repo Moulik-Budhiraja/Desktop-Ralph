@@ -44,7 +44,6 @@ enum OXAExecutor {
         middleware: any ActionExecutionMiddleware = NoopActionExecutionMiddleware()) throws -> String
     {
         let program = try OXAParser.parse(programSource)
-        try self.preflightProgramApplication(program)
 
         var output: [String] = []
         for (index, statement) in program.statements.enumerated() {
@@ -53,6 +52,7 @@ enum OXAExecutor {
                 statementIndex: index + 1,
                 totalStatements: program.statements.count)
             try middleware.willPerform(context)
+            try self.preflightStatementApplication(statement)
             let result = try self.execute(statement)
             output.append("ok [\(index + 1)] \(self.describe(statement))")
             if let readOutput = result.readOutput {
@@ -68,8 +68,8 @@ enum OXAExecutor {
         return output.joined(separator: "\n")
     }
 
-    private static func preflightProgramApplication(_ program: OXAProgram) throws {
-        let references = self.elementReferencesRequiringActivation(in: program)
+    private static func preflightStatementApplication(_ statement: OXAStatement) throws {
+        let references = self.elementReferencesRequiringActivation(for: statement)
         guard !references.isEmpty else {
             return
         }
@@ -121,28 +121,21 @@ enum OXAExecutor {
         }
     }
 
-    private static func elementReferencesRequiringActivation(in program: OXAProgram) -> [String] {
-        var references: [String] = []
-
-        for statement in program.statements {
-            switch statement {
-            case let .sendText(_, targetRef),
-                 let .sendTextAsKeys(_, targetRef),
-                 let .sendClick(targetRef),
-                 let .sendRightClick(targetRef),
-                 let .sendHotkey(_, targetRef),
-                 let .sendScroll(_, targetRef),
-                 let .sendScrollIntoView(targetRef):
-                references.append(targetRef)
-            case let .sendDrag(sourceRef, targetRef):
-                references.append(sourceRef)
-                references.append(targetRef)
-            case .readAttribute, .sleep, .open, .close:
-                continue
-            }
+    private static func elementReferencesRequiringActivation(for statement: OXAStatement) -> [String] {
+        switch statement {
+        case let .sendText(_, targetRef),
+             let .sendTextAsKeys(_, targetRef),
+             let .sendClick(targetRef),
+             let .sendRightClick(targetRef),
+             let .sendHotkey(_, targetRef),
+             let .sendScroll(_, targetRef),
+             let .sendScrollIntoView(targetRef):
+            return [targetRef]
+        case let .sendDrag(sourceRef, targetRef):
+            return [sourceRef, targetRef]
+        case .readAttribute, .sleep, .open, .close:
+            return []
         }
-
-        return references
     }
 
     private static func describe(_ statement: OXAStatement) -> String {
