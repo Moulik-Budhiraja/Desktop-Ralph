@@ -66,6 +66,7 @@ struct PingIntegrationTests {
         #expect(result.exitCode == 0)
         #expect(result.errorOutput?.isEmpty ?? true)
         #expect(result.output?.contains("USAGE") == true)
-        #expect(result.output?.contains("enable-ax") == true)
+        #expect(result.output?.contains("query") == true)
+        #expect(result.output?.contains("action") == true)
     }
 }

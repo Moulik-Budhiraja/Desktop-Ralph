@@ -36,6 +36,7 @@ enum SelectorQueryCLIError: LocalizedError, Equatable {
 struct SelectorQueryRequest: Equatable {
     let appIdentifier: String
     let selector: String
+    let bubbleMessage: String?
     let maxDepth: Int
     let limit: Int
     let colorEnabled: Bool
@@ -48,6 +49,7 @@ struct SelectorQueryRequest: Equatable {
     init(
         appIdentifier: String,
         selector: String,
+        bubbleMessage: String? = nil,
         maxDepth: Int,
         limit: Int,
         colorEnabled: Bool,
@@ -59,6 +61,7 @@ struct SelectorQueryRequest: Equatable {
     {
         self.appIdentifier = appIdentifier
         self.selector = selector
+        self.bubbleMessage = bubbleMessage
         self.maxDepth = maxDepth
         self.limit = limit
         self.colorEnabled = colorEnabled

@@ -121,7 +121,9 @@ enum SelectorCacheDaemonServer {
                 throw SelectorCacheDaemonError.invalidRequest("Missing query payload.")
             }
             do {
-                let report = try runner.execute(queryPayload.toSelectorQueryRequest())
+                let request = queryPayload.toSelectorQueryRequest()
+                PenguinOverlayController.shared.setBubbleMessage(request.bubbleMessage)
+                let report = try runner.execute(request)
                 let output = SelectorQueryOutputFormatter.format(report: report)
                 response = SelectorCacheDaemonResponse(success: true, output: output, error: nil)
             } catch let parseError as OXQParseError {
@@ -170,6 +172,9 @@ enum SelectorCacheDaemonServer {
 
 @MainActor
 struct SelectorCacheDaemonClient {
+    private static let daemonStartupPollCount = 100
+    private static let daemonStartupPollInterval: TimeInterval = 0.05
+
     static func defaultSocketPath() -> String {
         "/tmp/ralph-selector-cache-\(getuid()).sock"
     }
@@ -243,11 +248,11 @@ struct SelectorCacheDaemonClient {
             throw SelectorCacheDaemonError.daemonStartFailed(error.localizedDescription)
         }
 
-        for _ in 0..<40 {
+        for _ in 0..<Self.daemonStartupPollCount {
             if SelectorCacheSocketTransport.canConnect(socketPath: socketPath) {
                 return
             }
-            Thread.sleep(forTimeInterval: 0.05)
+            Thread.sleep(forTimeInterval: Self.daemonStartupPollInterval)
         }
 
         throw SelectorCacheDaemonError.daemonUnavailable("Timed out waiting for daemon socket at \(socketPath).")
@@ -297,6 +302,7 @@ struct SelectorCacheDaemonClient {
 private struct SelectorCacheDaemonPayload: Codable {
     let appIdentifier: String
     let selector: String
+    let bubbleMessage: String?
     let maxDepth: Int
     let limit: Int
     let colorEnabled: Bool
@@ -308,6 +314,7 @@ private struct SelectorCacheDaemonPayload: Codable {
     init(request: SelectorQueryRequest) {
         self.appIdentifier = request.appIdentifier
         self.selector = request.selector
+        self.bubbleMessage = request.bubbleMessage
         self.maxDepth = request.maxDepth
         self.limit = request.limit
         self.colorEnabled = request.colorEnabled
@@ -321,6 +328,7 @@ private struct SelectorCacheDaemonPayload: Codable {
         SelectorQueryRequest(
             appIdentifier: self.appIdentifier,
             selector: self.selector,
+            bubbleMessage: self.bubbleMessage,
             maxDepth: self.maxDepth,
             limit: self.limit,
             colorEnabled: self.colorEnabled,

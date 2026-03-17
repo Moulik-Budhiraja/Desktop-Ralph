@@ -8,6 +8,17 @@ struct RalphSpriteFrame {
 struct RalphSpriteAnimation {
     let frames: [RalphSpriteFrame]
     let frameDuration: TimeInterval
+    let repeats: Bool
+
+    init(frames: [RalphSpriteFrame], frameDuration: TimeInterval, repeats: Bool = true) {
+        self.frames = frames
+        self.frameDuration = frameDuration
+        self.repeats = repeats
+    }
+
+    var totalDuration: TimeInterval {
+        Double(self.frames.count) * self.frameDuration
+    }
 }
 
 enum RalphSpriteMovementDirection: Equatable {
@@ -33,10 +44,11 @@ struct RalphSpriteAnimationSet {
     let walkRight: RalphSpriteAnimation
     let walkUp: RalphSpriteAnimation
     let walkDown: RalphSpriteAnimation
-    let idleLeft: RalphSpriteFrame
-    let idleRight: RalphSpriteFrame
-    let idleUp: RalphSpriteFrame
-    let idleDown: RalphSpriteFrame
+    let idleLeftAnimations: [RalphSpriteAnimation]
+    let idleRightAnimations: [RalphSpriteAnimation]
+    let idleUpAnimations: [RalphSpriteAnimation]
+    let idleDownAnimations: [RalphSpriteAnimation]
+    let clickDown: RalphSpriteAnimation
 
     func walkAnimation(for direction: RalphSpriteMovementDirection) -> RalphSpriteAnimation {
         switch direction {
@@ -51,16 +63,25 @@ struct RalphSpriteAnimationSet {
         }
     }
 
-    func idleFrame(for direction: RalphSpriteMovementDirection) -> RalphSpriteFrame {
+    func idleAnimation(for direction: RalphSpriteMovementDirection) -> RalphSpriteAnimation {
         switch direction {
         case .left:
-            self.idleLeft
+            self.idleLeftAnimations.randomElement() ?? RalphSpriteAnimation(frames: [self.walkLeft.frames[0]], frameDuration: 0.2)
         case .right:
-            self.idleRight
+            self.idleRightAnimations.randomElement() ?? RalphSpriteAnimation(frames: [self.walkRight.frames[0]], frameDuration: 0.2)
         case .up:
-            self.idleUp
+            self.idleUpAnimations.randomElement() ?? RalphSpriteAnimation(frames: [self.walkUp.frames[0]], frameDuration: 0.2)
         case .down:
-            self.idleDown
+            self.idleDownAnimations.randomElement() ?? RalphSpriteAnimation(frames: [self.walkDown.frames[0]], frameDuration: 0.2)
+        }
+    }
+
+    func clickAnimation(for direction: RalphSpriteMovementDirection) -> RalphSpriteAnimation {
+        switch direction {
+        case .down:
+            self.clickDown
+        case .left, .right, .up:
+            self.idleAnimation(for: direction)
         }
     }
 }

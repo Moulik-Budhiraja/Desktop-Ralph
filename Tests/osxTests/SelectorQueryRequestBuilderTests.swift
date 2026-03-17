@@ -1,5 +1,5 @@
 import Testing
-@testable import osx
+@testable import ralph
 
 @Suite("Selector Query Request Builder")
 struct SelectorQueryRequestBuilderTests {
@@ -33,6 +33,7 @@ struct SelectorQueryRequestBuilderTests {
         #expect(request != nil)
         #expect(request?.appIdentifier == "com.apple.TextEdit")
         #expect(request?.selector == "AXButton")
+        #expect(request?.bubbleMessage == nil)
         #expect(request?.maxDepth == Int.max)
         #expect(request?.limit == 50)
         #expect(request?.colorEnabled == true)
@@ -114,6 +115,38 @@ struct SelectorQueryRequestBuilderTests {
             stdoutSupportsANSI: true)
 
         #expect(request?.showNameSource == true)
+    }
+
+    @Test("Trims and includes bubble text when provided")
+    func includesBubbleText() throws {
+        let request = try SelectorQueryRequestBuilder.build(
+            app: "com.apple.TextEdit",
+            selector: "AXButton",
+            bubbleText: "  Ralph is searching  ",
+            maxDepth: nil,
+            limit: nil,
+            noColor: true,
+            showPath: false,
+            hasStructuredInput: false,
+            stdoutSupportsANSI: true)
+
+        #expect(request?.bubbleMessage == "Ralph is searching")
+    }
+
+    @Test("Drops empty bubble text")
+    func dropsEmptyBubbleText() throws {
+        let request = try SelectorQueryRequestBuilder.build(
+            app: "com.apple.TextEdit",
+            selector: "AXButton",
+            bubbleText: "   ",
+            maxDepth: nil,
+            limit: nil,
+            noColor: true,
+            showPath: false,
+            hasStructuredInput: false,
+            stdoutSupportsANSI: true)
+
+        #expect(request?.bubbleMessage == nil)
     }
 
     @Test("Enables tree output when --tree is set")

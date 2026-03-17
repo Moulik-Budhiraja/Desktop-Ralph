@@ -11,24 +11,31 @@ final class RalphSpriteWindowController: NSWindowController {
 
     private let spriteView: RalphSpriteView
     private let animations: RalphSpriteAnimationSet
+    private var bubbleMessage: String
+    private var windowSize: CGSize {
+        RalphSpriteView.contentSize(for: self.bubbleMessage)
+    }
     private var hasPositionedSprite = false
     private var currentWalkDirection: RalphSpriteMovementDirection?
 
-    static func make() -> RalphSpriteWindowController? {
+    static func make(bubbleMessage: String = RalphSpriteView.defaultBubbleMessage) -> RalphSpriteWindowController? {
         guard let animations = try? RalphSpriteAssetLoader.loadAnimationSet() else {
             return nil
         }
-        return RalphSpriteWindowController(animations: animations)
+        return RalphSpriteWindowController(animations: animations, bubbleMessage: bubbleMessage)
     }
 
-    private init(animations: RalphSpriteAnimationSet) {
+    private init(animations: RalphSpriteAnimationSet, bubbleMessage: String) {
         self.animations = animations
+        self.bubbleMessage = bubbleMessage
+        let spriteWindowSize = RalphSpriteView.contentSize(for: bubbleMessage)
         self.spriteView = RalphSpriteView(
-            frame: CGRect(origin: .zero, size: Self.spriteSize),
-            animations: animations)
+            frame: CGRect(origin: .zero, size: spriteWindowSize),
+            animations: animations,
+            bubbleMessage: bubbleMessage)
 
         let window = NSWindow(
-            contentRect: CGRect(origin: Self.desktopFrame().origin, size: Self.spriteSize),
+            contentRect: CGRect(origin: Self.desktopFrame().origin, size: spriteWindowSize),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false)
@@ -50,12 +57,22 @@ final class RalphSpriteWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func updateBubbleMessage(_ message: String) {
+        guard self.bubbleMessage != message, let window else { return }
+        self.bubbleMessage = message
+        self.spriteView.updateBubbleMessage(message)
+        let nextSize = RalphSpriteView.contentSize(for: message)
+        self.spriteView.frame = CGRect(origin: .zero, size: nextSize)
+        window.setContentSize(nextSize)
+        window.setFrameOrigin(Self.clampedOrigin(window.frame.origin, windowSize: nextSize))
+    }
+
     func walk(to targetFrame: CGRect) {
         guard let window else { return }
 
         let destinationOrigin = Self.spriteOrigin(for: targetFrame)
         let currentOrigin = window.frame.origin
-        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: destinationOrigin)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : self.offscreenOrigin(toward: destinationOrigin)
         self.animateWalk(from: startOrigin, to: destinationOrigin)
     }
 
@@ -65,6 +82,12 @@ final class RalphSpriteWindowController: NSWindowController {
         while Date() < endDate {
             RunLoop.current.run(mode: .default, before: min(endDate, Date().addingTimeInterval(0.01)))
         }
+    }
+
+    func click(targetFrame: CGRect) {
+        self.walk(to: targetFrame)
+        self.spriteView.playClick(direction: .down)
+        self.dwell(for: self.animations.clickDown.totalDuration)
     }
 
     func pullWindow(
@@ -81,7 +104,7 @@ final class RalphSpriteWindowController: NSWindowController {
         let stageHandle = Self.screenEdgeHandle(for: edge, alignedWith: destinationHandle)
         let currentOrigin = self.window?.frame.origin ?? .zero
         let stageOrigin = Self.origin(forWindowHandlePoint: stageHandle, edge: edge)
-        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin()
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin(windowSize: self.windowSize)
 
         self.animateWalk(from: startOrigin, to: stageOrigin)
         shell.show(title: title, frame: windowStartFrame)
@@ -98,12 +121,9 @@ final class RalphSpriteWindowController: NSWindowController {
             let currentFrame = CGRect(origin: shellOrigin, size: windowDestinationFrame.size)
             let currentHandle = RalphWindowPullOverlay.handlePoint(for: currentFrame, edge: edge)
             let spriteOrigin = Self.origin(forWindowHandlePoint: currentHandle, edge: edge)
-            let currentDirection: RalphSpriteMovementDirection
-            if progress >= 1 {
-                currentDirection = direction
-            } else {
-                currentDirection = RalphSpriteMovementDirection.resolve(from: stageOrigin, to: spriteOrigin)
-            }
+            let currentDirection = progress >= 1
+                ? direction
+                : RalphSpriteMovementDirection.resolve(from: stageOrigin, to: spriteOrigin)
             self.updateWalk(to: spriteOrigin, direction: currentDirection)
             shell.move(to: currentFrame)
         }
@@ -126,15 +146,13 @@ final class RalphSpriteWindowController: NSWindowController {
         let stageHandle = Self.screenEdgeHandle(for: edge, alignedWith: destinationHandle)
         let currentOrigin = self.window?.frame.origin ?? .zero
         let stageOrigin = Self.origin(forWindowHandlePoint: stageHandle, edge: edge)
-        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin()
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin(windowSize: self.windowSize)
 
         self.animateWalk(from: startOrigin, to: stageOrigin)
         moveWindow(windowStartFrame)
 
         let destinationOrigin = Self.origin(forWindowHandlePoint: destinationHandle, edge: edge)
-        let direction = RalphSpriteMovementDirection.resolve(
-            from: stageOrigin,
-            to: destinationOrigin)
+        let direction = RalphSpriteMovementDirection.resolve(from: stageOrigin, to: destinationOrigin)
         self.beginWalk(at: stageOrigin, direction: direction)
         RalphMotionAnimator.animate(
             from: windowStartFrame.origin,
@@ -191,27 +209,32 @@ final class RalphSpriteWindowController: NSWindowController {
             y: flippedPoint.y - offset.y)
     }
 
-    static func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
+    private func offscreenOrigin(toward destination: CGPoint) -> CGPoint {
         let desktop = Self.desktopFrame()
         let start = CGPoint(
             x: max(desktop.minX, destination.x - 120),
-            y: min(desktop.maxY - Self.spriteSize.height, destination.y + 80))
-        return Self.clampedOrigin(start)
+            y: min(desktop.maxY - self.windowSize.height, destination.y + 80))
+        return self.clampedOrigin(start)
     }
 
-    static func defaultRestingOrigin() -> CGPoint {
+    private static func defaultRestingOrigin(windowSize: CGSize) -> CGPoint {
         let desktop = Self.desktopFrame()
         return Self.clampedOrigin(
             CGPoint(
                 x: desktop.minX + 48,
-                y: desktop.minY + 48))
+                y: desktop.minY + 48),
+            windowSize: windowSize)
     }
 
-    static func clampedOrigin(_ origin: CGPoint) -> CGPoint {
+    private func clampedOrigin(_ origin: CGPoint) -> CGPoint {
+        Self.clampedOrigin(origin, windowSize: self.windowSize)
+    }
+
+    private static func clampedOrigin(_ origin: CGPoint, windowSize: CGSize) -> CGPoint {
         let desktop = Self.desktopFrame()
         return CGPoint(
-            x: min(max(origin.x, desktop.minX), desktop.maxX - Self.spriteSize.width),
-            y: min(max(origin.y, desktop.minY), desktop.maxY - Self.spriteSize.height))
+            x: min(max(origin.x, desktop.minX), desktop.maxX - windowSize.width),
+            y: min(max(origin.y, desktop.minY), desktop.maxY - windowSize.height))
     }
 
     static func desktopFrame() -> CGRect {
@@ -256,7 +279,7 @@ final class RalphSpriteWindowController: NSWindowController {
 
     private func beginWalk(at origin: CGPoint, direction: RalphSpriteMovementDirection) {
         guard let window else { return }
-        window.setFrameOrigin(Self.clampedOrigin(origin))
+        window.setFrameOrigin(self.clampedOrigin(origin))
         window.orderFrontRegardless()
         self.hasPositionedSprite = true
         self.currentWalkDirection = direction
@@ -265,7 +288,7 @@ final class RalphSpriteWindowController: NSWindowController {
 
     private func updateWalk(to origin: CGPoint, direction: RalphSpriteMovementDirection) {
         guard let window else { return }
-        window.setFrameOrigin(Self.clampedOrigin(origin))
+        window.setFrameOrigin(self.clampedOrigin(origin))
         self.hasPositionedSprite = true
         if self.currentWalkDirection != direction {
             self.currentWalkDirection = direction
@@ -275,7 +298,7 @@ final class RalphSpriteWindowController: NSWindowController {
 
     private func endWalk(at origin: CGPoint, direction: RalphSpriteMovementDirection) {
         guard let window else { return }
-        window.setFrameOrigin(Self.clampedOrigin(origin))
+        window.setFrameOrigin(self.clampedOrigin(origin))
         self.hasPositionedSprite = true
         self.currentWalkDirection = nil
         self.spriteView.showIdle(direction: direction)
@@ -285,34 +308,91 @@ final class RalphSpriteWindowController: NSWindowController {
 enum RalphSpriteAssetLoader {
     static func loadAnimationSet() throws -> RalphSpriteAnimationSet {
         let leftIdle = try Self.loadFrame(named: "left_profile_pose_01")
-        let leftWalkFrames = try [
-            "left_profile_walk_pose_01",
-            "left_profile_pose_02",
-            "left_profile_walk_pose_02",
-            "left_profile_pose_03",
-        ].map(Self.loadFrame(named:))
-        let upWalkFrames = try [
-            "back_pose_01",
-            "back_pose_02",
-            "back_pose_03",
-            "back_pose_04",
-        ].map(Self.loadFrame(named:))
-        let downWalkFrames = try [
-            "front_center_pose_01",
-            "front_center_pose_02",
-            "front_center_pose_03",
-            "front_center_pose_04",
-        ].map(Self.loadFrame(named:))
+        let leftPoseTwo = try Self.loadFrame(named: "left_profile_pose_02")
+        let leftPoseThree = try Self.loadFrame(named: "left_profile_pose_03")
+        let leftWalkPoseOne = try Self.loadFrame(named: "left_profile_walk_pose_01")
+        let leftWalkPoseTwo = try Self.loadFrame(named: "left_profile_walk_pose_02")
+        let leftWalkFrames = try Self.loadFrames(
+            named: [
+                "left_profile_walk_pose_01",
+                "left_profile_pose_02",
+                "left_profile_walk_pose_02",
+                "left_profile_pose_03",
+            ])
+        let upWalkFrames = try Self.loadFrames(
+            named: [
+                "back_pose_01",
+                "back_pose_02",
+                "back_pose_03",
+                "back_pose_04",
+            ])
+        let backGeminiIdle = try Self.loadFrame(named: "gemini_back_pose_02")
+        let downWalkFrames = try Self.loadFrames(
+            named: [
+                "gemini_front_walk_pose_01",
+                "gemini_front_walk_pose_02",
+                "gemini_front_walk_pose_03",
+                "gemini_front_walk_pose_04",
+                "gemini_front_walk_pose_05",
+                "gemini_front_walk_pose_06",
+                "gemini_front_walk_pose_07",
+                "gemini_front_walk_pose_08",
+            ])
+        let frontIdle = try Self.loadFrame(named: "gemini_front_idle_pose_01")
+        let frontStep = try Self.loadFrame(named: "gemini_front_step_pose_01")
+        let frontButtonIdleOne = try Self.loadFrame(named: "gemini_front_button_idle_pose_01")
+        let frontButtonIdleTwo = try Self.loadFrame(named: "gemini_front_button_idle_pose_02")
+        let frontButtonReach = try Self.loadFrame(named: "gemini_front_button_reach_pose_01")
+        let frontButtonPressOne = try Self.loadFrame(named: "gemini_front_button_press_pose_01")
+        let frontButtonPressTwo = try Self.loadFrame(named: "gemini_front_button_press_pose_02")
+        let frontButtonClick = try Self.loadFrame(named: "gemini_front_button_click_pose_01")
+        let frontCelebrateOne = try Self.loadFrame(named: "gemini_front_celebrate_pose_01")
+        let frontCelebrateTwo = try Self.loadFrame(named: "gemini_front_celebrate_pose_02")
+        let frontAkimboOne = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_01")
+        let frontAkimboTwo = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_02")
+        let frontAkimboThree = try Self.loadFrame(named: "gemini_front_arms_akimbo_pose_03")
+        let leftIdleAnimations = [
+            RalphSpriteAnimation(frames: [leftIdle, leftPoseTwo, leftPoseThree, leftPoseTwo], frameDuration: 0.16),
+            RalphSpriteAnimation(frames: [leftIdle, leftWalkPoseOne, leftIdle, leftWalkPoseTwo], frameDuration: 0.18),
+        ]
+        let upIdleAnimations = [
+            RalphSpriteAnimation(frames: upWalkFrames, frameDuration: 0.18),
+            RalphSpriteAnimation(frames: [backGeminiIdle, upWalkFrames[1], backGeminiIdle, upWalkFrames[2]], frameDuration: 0.2),
+        ]
+        let downIdleAnimations = [
+            RalphSpriteAnimation(frames: [frontIdle, frontStep, frontIdle], frameDuration: 0.2),
+            RalphSpriteAnimation(frames: [frontButtonIdleOne, frontButtonIdleTwo, frontButtonIdleOne], frameDuration: 0.18),
+            RalphSpriteAnimation(frames: [frontAkimboOne, frontAkimboTwo, frontAkimboThree, frontAkimboTwo], frameDuration: 0.18),
+            RalphSpriteAnimation(frames: [frontCelebrateOne, frontCelebrateTwo], frameDuration: 0.22),
+        ]
+        let clickDown = RalphSpriteAnimation(
+            frames: [
+                frontButtonIdleOne,
+                frontButtonReach,
+                frontButtonPressOne,
+                frontButtonPressTwo,
+                frontButtonClick,
+                frontButtonPressTwo,
+                frontButtonIdleTwo,
+                frontButtonIdleOne,
+            ],
+            frameDuration: 0.08,
+            repeats: false)
 
         return RalphSpriteAnimationSet(
             walkLeft: RalphSpriteAnimation(frames: leftWalkFrames, frameDuration: 0.10),
             walkRight: RalphSpriteAnimation(frames: leftWalkFrames.map(Self.mirror), frameDuration: 0.10),
             walkUp: RalphSpriteAnimation(frames: upWalkFrames, frameDuration: 0.11),
-            walkDown: RalphSpriteAnimation(frames: downWalkFrames, frameDuration: 0.11),
-            idleLeft: leftIdle,
-            idleRight: Self.mirror(leftIdle),
-            idleUp: try Self.loadFrame(named: "back_pose_01"),
-            idleDown: try Self.loadFrame(named: "front_center_pose_01"))
+            walkDown: RalphSpriteAnimation(frames: downWalkFrames, frameDuration: 0.09),
+            idleLeftAnimations: leftIdleAnimations,
+            idleRightAnimations: leftIdleAnimations.map(Self.mirror),
+            idleUpAnimations: upIdleAnimations,
+            idleDownAnimations: downIdleAnimations,
+            clickDown: clickDown)
+    }
+
+    private static func loadFrames(named names: [String]) throws -> [RalphSpriteFrame] {
+        try names.map(Self.loadFrame(named:))
     }
 
     private static func loadFrame(named name: String) throws -> RalphSpriteFrame {
@@ -335,6 +415,10 @@ enum RalphSpriteAssetLoader {
         frame.image.draw(in: CGRect(origin: .zero, size: frame.image.size))
         mirrored.unlockFocus()
         return RalphSpriteFrame(image: mirrored)
+    }
+
+    private static func mirror(_ animation: RalphSpriteAnimation) -> RalphSpriteAnimation {
+        RalphSpriteAnimation(frames: animation.frames.map(Self.mirror), frameDuration: animation.frameDuration)
     }
 }
 

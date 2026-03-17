@@ -1,5 +1,5 @@
 import Testing
-@testable import osx
+@testable import ralph
 
 @Suite("AX Exposure Request Builder")
 struct AXExposureRequestBuilderTests {

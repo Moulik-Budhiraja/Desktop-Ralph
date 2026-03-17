@@ -1,7 +1,7 @@
 import ApplicationServices
 import Foundation
 import Testing
-@testable import osx
+@testable import ralph
 
 @Suite("AX Exposure Runner")
 @MainActor

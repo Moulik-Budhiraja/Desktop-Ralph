@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import osx
+@testable import ralph
 
 @Suite("Selector Query Output Formatter")
 struct SelectorQueryOutputFormatterTests {

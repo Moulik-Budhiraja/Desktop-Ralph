@@ -5,7 +5,15 @@ import Foundation
 final class PenguinOverlayController {
     static let shared = PenguinOverlayController()
 
-    let spriteWindowController = RalphSpriteWindowController.make()
+    private var bubbleMessage = RalphSpriteView.defaultBubbleMessage
+    lazy var spriteWindowController = RalphSpriteWindowController.make(bubbleMessage: self.bubbleMessage)
+
+    func setBubbleMessage(_ message: String?) {
+        let resolvedMessage = Self.normalizeBubbleMessage(message)
+        guard self.bubbleMessage != resolvedMessage else { return }
+        self.bubbleMessage = resolvedMessage
+        self.spriteWindowController?.updateBubbleMessage(resolvedMessage)
+    }
 
     func showAction(
         _ statement: OXAStatement,
@@ -24,8 +32,11 @@ final class PenguinOverlayController {
                 spriteWindowController.walk(to: destinationFrame)
                 spriteWindowController.dwell(for: dwellTime / 2)
             }
-        case .sendClick,
-             .sendRightClick,
+        case .sendClick:
+            if let targetFrame = targets.first?.frame {
+                spriteWindowController.click(targetFrame: targetFrame)
+            }
+        case .sendRightClick,
              .sendText,
              .sendTextAsKeys,
              .sendHotkey,
@@ -63,6 +74,14 @@ final class PenguinOverlayController {
             windowStartFrame: startFrame,
             windowDestinationFrame: destinationFrame,
             dwellTime: dwellTime)
+    }
+
+    private static func normalizeBubbleMessage(_ message: String?) -> String {
+        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedMessage, !trimmedMessage.isEmpty else {
+            return RalphSpriteView.defaultBubbleMessage
+        }
+        return trimmedMessage
     }
 }
 
