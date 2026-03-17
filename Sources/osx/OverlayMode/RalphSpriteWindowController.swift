@@ -5,9 +5,9 @@ import Foundation
 final class RalphSpriteWindowController: NSWindowController {
     static let spriteSize = CGSize(width: 128, height: 160)
     static let interactionOffset = CGPoint(x: 64, y: 28)
-    static let rightFacingPullOffset = CGPoint(x: 98, y: 108)
-    static let leftFacingPullOffset = CGPoint(x: 30, y: 108)
-    static let verticalPullOffset = CGPoint(x: 64, y: 112)
+    static let rightFacingPullOffset = CGPoint(x: 96, y: 82)
+    static let leftFacingPullOffset = CGPoint(x: 32, y: 82)
+    static let verticalPullOffset = CGPoint(x: 64, y: 82)
 
     private let spriteView: RalphSpriteView
     private let animations: RalphSpriteAnimationSet
