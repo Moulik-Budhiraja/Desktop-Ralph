@@ -75,15 +75,13 @@ final class RalphSpriteWindowController: NSWindowController {
         dwellTime: TimeInterval)
     {
         let shell = RalphWindowPullOverlay.make()
-        let stageHandle = RalphWindowPullOverlay.handlePoint(
-            for: Self.visibleEdgeFrame(from: windowStartFrame, edge: edge),
-            edge: edge)
         let destinationHandle = RalphWindowPullOverlay.handlePoint(
             for: windowDestinationFrame,
             edge: edge)
+        let stageHandle = Self.screenEdgeHandle(for: edge, alignedWith: destinationHandle)
         let currentOrigin = self.window?.frame.origin ?? .zero
         let stageOrigin = Self.origin(forWindowHandlePoint: stageHandle, edge: edge)
-        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: stageOrigin)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin()
 
         self.animateWalk(from: startOrigin, to: stageOrigin)
         shell.show(title: title, frame: windowStartFrame)
@@ -122,15 +120,13 @@ final class RalphSpriteWindowController: NSWindowController {
         dwellTime: TimeInterval,
         moveWindow: (CGRect) -> Void)
     {
-        let stageHandle = RalphWindowPullOverlay.handlePoint(
-            for: Self.visibleEdgeFrame(from: windowStartFrame, edge: edge),
-            edge: edge)
         let destinationHandle = RalphWindowPullOverlay.handlePoint(
             for: windowDestinationFrame,
             edge: edge)
+        let stageHandle = Self.screenEdgeHandle(for: edge, alignedWith: destinationHandle)
         let currentOrigin = self.window?.frame.origin ?? .zero
         let stageOrigin = Self.origin(forWindowHandlePoint: stageHandle, edge: edge)
-        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.offscreenOrigin(toward: stageOrigin)
+        let startOrigin = self.hasPositionedSprite ? currentOrigin : Self.defaultRestingOrigin()
 
         self.animateWalk(from: startOrigin, to: stageOrigin)
         moveWindow(windowStartFrame)
@@ -203,6 +199,14 @@ final class RalphSpriteWindowController: NSWindowController {
         return Self.clampedOrigin(start)
     }
 
+    static func defaultRestingOrigin() -> CGPoint {
+        let desktop = Self.desktopFrame()
+        return Self.clampedOrigin(
+            CGPoint(
+                x: desktop.minX + 48,
+                y: desktop.minY + 48))
+    }
+
     static func clampedOrigin(_ origin: CGPoint) -> CGPoint {
         let desktop = Self.desktopFrame()
         return CGPoint(
@@ -216,17 +220,20 @@ final class RalphSpriteWindowController: NSWindowController {
         }
     }
 
-    private static func visibleEdgeFrame(from frame: CGRect, edge: RalphWindowPullOverlay.Edge) -> CGRect {
+    private static func screenEdgeHandle(
+        for edge: RalphWindowPullOverlay.Edge,
+        alignedWith destinationHandle: CGPoint) -> CGPoint
+    {
         let desktop = Self.desktopFrame()
         switch edge {
         case .left:
-            return CGRect(x: desktop.minX, y: frame.minY, width: frame.width, height: frame.height)
+            return CGPoint(x: desktop.minX, y: destinationHandle.y)
         case .right:
-            return CGRect(x: desktop.maxX - frame.width, y: frame.minY, width: frame.width, height: frame.height)
+            return CGPoint(x: desktop.maxX, y: destinationHandle.y)
         case .top:
-            return CGRect(x: frame.minX, y: desktop.maxY - frame.height, width: frame.width, height: frame.height)
+            return CGPoint(x: destinationHandle.x, y: desktop.maxY)
         case .bottom:
-            return CGRect(x: frame.minX, y: desktop.minY, width: frame.width, height: frame.height)
+            return CGPoint(x: destinationHandle.x, y: desktop.minY)
         }
     }
 
